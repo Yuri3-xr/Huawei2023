@@ -42,6 +42,8 @@ struct Vec {
     double angle() const { return atan2(y, x); }
     Vec unit() const { return *this / dist(); }  // makes dist()=1
     Vec perp() const { return Vec(-y, x); }      // rotates +90 degrees
+    Vec perpInv() const { return Vec(y, -x); }   // rotates -90 degrees
+
     Vec normal() const { return perp().unit(); }
     // returns point rotated 'a' radians ccw around the origin
     Vec rotate(double a) const {
@@ -93,7 +95,8 @@ struct Robots {
         */
         if (equalZero(angV)) return {1, {cd, lineV.dist()}};
         double r = std::abs(lineV.dist() / (2 * angV));
-        Vec ret = lineV.rotate(-(sgn(angV)) * (M_PI_2));
+
+        Vec ret = (sgn(angV) > 0) ? lineV.perpInv() : lineV.perp();
         ret = ret + cd;
         return {2, {ret, r}};
     };
