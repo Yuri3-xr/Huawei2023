@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstdio>
+#include <iomanip>
 #include <iostream>
 #include <tuple>
 #include <utility>
@@ -89,6 +90,7 @@ struct Robots {
           lineV(lineV),
           direction(direction),
           goods(goods){};
+
     std::pair<int, std::pair<Coordinate, double>> getTrack() {
         /*
             给定当前坐标以及朝向和角速度，线速度，判断机器人轨迹
@@ -106,7 +108,33 @@ struct Robots {
         pr = pr + cd;
         return {2, {pr, r}};
     };
+
+    friend std::ostream& operator<<(std::ostream& os, Robots x) {
+        os << std::fixed << std::setprecision(6);
+        os << "当前坐标为：" << x.cd << std::endl;
+        os << "当前角速度为：" << x.angV << std::endl;
+        os << "当前线速度为：" << x.lineV << std::endl;
+        os << "当前朝向为：" << x.direction << std::endl;
+        os << "当前携带的货物为：" << x.goods << std::endl;
+        os << "当前前往的工作台为：" << x.currentWork << std::endl;
+        return os;
+    }
 };
+
+/*----------------------------------机器人类-------------------------------*/
+
+struct Workshop {
+    Coordinate cd;
+    int remTime;   // 剩余生产时间
+    int matState;  // 原材料状态
+    int repState;  // 产品格状态
+    Workshop() = delete;
+    Workshop(double x, double y, int remTime, int matState, int repStata)
+        : cd(x, y), remTime(remTime), matState(matState), repState(repState){};
+};
+
+/*----------------------------------工作台类-------------------------------*/
+
 bool readUntilOK() {
     char line[1024];
     while (fgets(line, sizeof line, stdin)) {
