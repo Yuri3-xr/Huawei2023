@@ -138,22 +138,45 @@ bool readUntilOK() {
     return false;
 }
 
+bool readOK() {
+    std::string line;
+    while (getline(std::cin, line)) {
+        if (line == "ok") return true;
+    }
+
+    return false;
+}
 int main() {
-    readUntilOK();
-    puts("OK");
-    fflush(stdout);
+    // readUntilOK();
+    // puts("OK");
+    // fflush(stdout);
+    // int frameID;
+    // while (scanf("%d", &frameID) != EOF) {
+    //     readUntilOK();
+    //     printf("%d\n", frameID);
+    //     int lineSpeed = 3;
+    //     double angleSpeed = 1.5;
+    //     for (int robotId = 0; robotId < 4; robotId++) {
+    //         printf("forward %d %d\n", robotId, lineSpeed);
+    //         printf("rotate %d %f\n", robotId, angleSpeed);
+    //     }
+    //     printf("OK\n", frameID);
+    //     fflush(stdout);
+    // }
+    readOK();
+    std::cout << "OK" << std::endl;
     int frameID;
-    while (scanf("%d", &frameID) != EOF) {
-        readUntilOK();
-        printf("%d\n", frameID);
+    while (std::cin >> frameID) {
+        readOK();
+        std::cout << frameID << std::endl;
         int lineSpeed = 3;
         double angleSpeed = 1.5;
-        for (int robotId = 0; robotId < 4; robotId++) {
-            printf("forward %d %d\n", robotId, lineSpeed);
-            printf("rotate %d %f\n", robotId, angleSpeed);
+        for (int i = 0; i < 4; i++) {
+            std::cout << "forward " << i << " " << lineSpeed << std::endl;
+            std::cout << "rotate " << i << " " << angleSpeed << std::endl;
         }
-        printf("OK\n", frameID);
-        fflush(stdout);
+        std::cout << "OK" << std::endl;
+        std::cout.flush();
     }
     return 0;
 }
