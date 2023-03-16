@@ -1,13 +1,18 @@
+#include <array>
+#include <cassert>
 #include <cmath>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
 #include <tuple>
 #include <utility>
+#include <variant>
 #include <vector>
-using namespace std;
 
 constexpr double EPS = 1E-10;
+constexpr int numRobots = 4;
+constexpr std::array<std::string, 5> opName = {"forward", "rotate", "but",
+                                               "sell", "destroy"};
 
 template <class T>
 int sgn(T x) {
@@ -73,16 +78,23 @@ struct Robots {
     double angV;       // 角速度（弧度制），
     Vec lineV;         // 线速度（向量）
     double direction;  // 方向（弧度制）
-    int goods;  // 当前的携带的货物，-1表示当前没有携带货物
-    int currentWork;  // 当前前往的工作台，-1表示当前闲置
-    Robots() = delete;
-    Robots(double x, double y, double angV, double lineVx, double lineVy,
-           double direction, int goods = -1, int currentWork = -1)
-        : cd(x, y),
+    int goods;  // 当前的携带的货物，0表示当前没有携带货物
+    int currentWork;      // 当前前往的工作台，-1表示当前闲置
+    int currentWorkshop;  // 当前所处的工作台
+    double timeCoeff;     // 时间价值系数
+    double crashCoeff;    // 碰撞价值系数
+    Robots(){};
+    Robots(int currentWorkshop, double x, double y, double angV, double lineVx,
+           double lineVy, double direction, int goods, int currentWork,
+           double timeCoeff, double crashCoeff)
+        : currentWorkshop(currentWorkshop),
+          cd(x, y),
           angV(angV),
           lineV(lineVx, lineVy),
           direction(direction),
-          goods(goods){};
+          goods(goods),
+          timeCoeff(timeCoeff),
+          crashCoeff(crashCoeff){};
 
     std::pair<int, std::pair<Vec, double>> getTrack() {
         /*
@@ -115,30 +127,58 @@ struct Robots {
 
 /*----------------------------------机器人类-------------------------------*/
 
-struct Workshop {
+struct Workshops {
     Vec cd;
     int remTime;   // 剩余生产时间
     int matState;  // 原材料状态
     int repState;  // 产品格状态
-    Workshop() = delete;
-    Workshop(double x, double y, int remTime, int matState, int repStata)
-        : cd(x, y), remTime(remTime), matState(matState), repState(repState){};
+    int type;      // 工作台种类
+    Workshops(){};
+    Workshops(double x, double y, int remTime, int matState, int repStata,
+              int type)
+        : cd(x, y),
+          remTime(remTime),
+          matState(matState),
+          repState(repState),
+          type(type){};
 };
 
 /*----------------------------------工作台类-------------------------------*/
 
-bool readUntilOK() {
-    char line[1024];
-    while (fgets(line, sizeof line, stdin)) {
-        if (line[0] == 'O' && line[1] == 'K') {
-            return true;
-        }
-        // do something
+struct Operate {
+    int type;
+    std::vector<std::variant<int, double>> parameter;
+    Operate() = delete;
+    Operate(int type, std::vector<std::variant<int, double>> parameter)
+        : type(type), parameter(parameter) {
+        assert(0 <= type && type <= 4);
+        if (0 <= type && type <= 1) assert(parameter.size() == 1);
+        if (2 <= type && type <= 4) assert(parameter.size() == 2);
+    };
+    friend std::ostream& operator<<(std::ostream& os, Operate p) {
+        os << opName[p.type] << " ";
+        if (p.parameter.size() == 1)
+            os << std::get<int>(p.parameter[0]);
+        else
+            os << std::get<int>(p.parameter[0]) << " "
+               << std::get<double>(p.parameter[1]);
+        os << std::endl;
+        return os;
     }
-    return false;
-}
+};
 
-bool readOK() {
+/*----------------------------------操作类-------------------------------*/
+
+int frameID = 0;
+int64_t money = 200'000;
+int numWorkshops;
+
+std::array<Robots, numRobots> robot;  // 4个机器人
+std::vector<Workshops> workshop;      // 工作台
+
+/*----------------------------------全局数据结构-------------------------------*/
+
+bool readUntilOK() {
     std::string line;
     while (getline(std::cin, line)) {
         if (line == "ok") return true;
@@ -146,35 +186,59 @@ bool readOK() {
 
     return false;
 }
+
+void updateWorkshopState() {
+    std::cin >> money;
+    std::cin >> numWorkshops;
+
+    workshop.resize(numWorkshops);
+
+    for (int i = 0; i < numWorkshops; i++) {
+        double x, y;
+        int remTime, matState, repStata, type;
+        std::cin >> type >> x >> y >> remTime >> matState >> repStata;
+        workshop[i] = Workshops(x, y, remTime, matState, repStata, type);
+    }
+}
+
+void updateRobotState() {
+    for (int i = 0; i < numRobots; i++) {
+        int currentWorkshop, goods;
+        double timeCoeff, crashCoeff;
+        double angV;
+        Vec lineV;
+        double direction;
+        double x, y;
+
+        std::cin >> currentWorkshop >> goods >> timeCoeff >> crashCoeff >>
+            angV >> lineV.x >> lineV.y >> direction >> x >> y;
+
+        robot[i] = Robots(currentWorkshop, x, y, angV, lineV.x, lineV.y,
+                          direction, goods, -1, timeCoeff, crashCoeff);
+    }
+}
+
+std::vector<Operate> distributePlan() {
+    /*
+        初步想法是贪心地搞，具体实现见naive_greedy分支
+    */
+}
+/*----------------------------------操作函数-------------------------------*/
+
 int main() {
-    // readUntilOK();
-    // puts("OK");
-    // fflush(stdout);
-    // int frameID;
-    // while (scanf("%d", &frameID) != EOF) {
-    //     readUntilOK();
-    //     printf("%d\n", frameID);
-    //     int lineSpeed = 3;
-    //     double angleSpeed = 1.5;
-    //     for (int robotId = 0; robotId < 4; robotId++) {
-    //         printf("forward %d %d\n", robotId, lineSpeed);
-    //         printf("rotate %d %f\n", robotId, angleSpeed);
-    //     }
-    //     printf("OK\n", frameID);
-    //     fflush(stdout);
-    // }
-    readOK();
+    readUntilOK();
     std::cout << "OK" << std::endl;
-    int frameID;
+
     while (std::cin >> frameID) {
-        readOK();
+        updateWorkshopState();
+        updateRobotState();
+
+        readUntilOK();
         std::cout << frameID << std::endl;
-        int lineSpeed = 3;
-        double angleSpeed = 1.5;
-        for (int i = 0; i < 4; i++) {
-            std::cout << "forward " << i << " " << lineSpeed << std::endl;
-            std::cout << "rotate " << i << " " << angleSpeed << std::endl;
-        }
+
+        auto plan = distributePlan();
+        for (const auto& out : plan) std::cout << out;
+
         std::cout << "OK" << std::endl;
         std::cout.flush();
     }
