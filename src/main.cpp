@@ -11,8 +11,8 @@
 
 constexpr double EPS = 1E-10;
 constexpr int numRobots = 4;
-constexpr std::array<std::string, 5> opName = {"forward", "rotate", "but",
-                                               "sell", "destroy"};
+const std::array<std::string, 5> opName = {"forward", "rotate", "but", "sell",
+                                           "destroy"};
 
 template <class T>
 int sgn(T x) {
@@ -222,6 +222,7 @@ std::vector<Operate> distributePlan() {
     /*
         初步想法是贪心地搞，具体实现见naive_greedy分支
     */
+    return std::vector<Operate>();
 }
 /*----------------------------------操作函数-------------------------------*/
 
