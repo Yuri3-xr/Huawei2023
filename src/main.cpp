@@ -30,6 +30,13 @@ struct Graph {
     };
 };
 
+/*
+N: 点数
+M: 边数
+T: 任务数
+P: 信道上限
+D: 衰减上限
+*/
 int N, M, T, P, D;
 std::vector<std::pair<int, int>> task;
 
