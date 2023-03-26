@@ -3,13 +3,13 @@
 using i64 = std::int64_t;
 
 constexpr int INF = std::numeric_limits<int>::max()/2.0;
-constexpr uint32_t SEED = 229;
+constexpr uint32_t SEED = 235423;
 
-std::mt19937 seed(SEED);
+std::mt19937 seed(std::time(nullptr));
 
 inline int randomInt(int l,int r){
     // return Int [l,r);
-    std::uniform_int_distribution<int> RNG(l, r + 1);
+    std::uniform_int_distribution<int> RNG(l, r - 1);
     return RNG(seed);
 }
 
@@ -95,40 +95,52 @@ bool randomAddEdge(Graph &G, int from) {
     return false;
 }
 
-bool randomAddEdge(Graph &G, int from, int &ret) {
+bool randomAddEdge(Graph &G, int from, int &ret, std::vector<int> &vis) {
     if (!G.adj[from].size()) return false;
-    int randNum = randomInt(0, (int)G.adj[from].size());
+    // int randNum = randomInt(0, (int)G.adj[from].size());
     for (auto e : G.adj[from]) {
-        --randNum;
-        if (randNum <= 0) {
-            // G.addEdge(from, e.to, G.mat[from][e.to]);
-            ret = e.to;
+        int to = e.to;
+        if (!vis[to]) {
+            ret = to;
             return true;
         }
+        // --randNum;
+        // if (randNum <= 0) {
+            // G.addEdge(from, e.to, G.mat[from][e.to]);
+            // ret = e.to;
+            // return true;
+        // }
     }
     return false;
 }
 
-std::vector<int> bfs(Graph &G, Task &t) {
-    std::vector<int > lst(N, -1);
+std::vector<std::pair<int, int>> bfs(Graph &G, Task &t) {
+    std::vector<std::pair<int, int> > lst(N, {-1, -1});
     std::vector<int> vis(N, 0);
     std::queue<int> Q;
+    t.channel = findChannel(G, t.from);
     while (t.channel == -1) {
-        t.channel = findChannel(G, t.from); // 随机分配信道
         randomAddEdge(G, t.from); // 随机加边
+        t.channel = findChannel(G, t.from); // 随机分配信道
     }
+    // std::cerr << t.from << " -> " << t.to << std::endl;
+    // std::cerr << t.channel << std::endl;
     Q.push(t.from);
+    vis[t.from] = true;
     while (!Q.empty()) {
         int from = Q.front(); Q.pop();
-        vis[from] = 1;
         // std::cerr << from << std::endl;
         if (from == t.to) break;
         for (auto e : G.adj[from]) {
             int to = e.to;
             if (vis[to]) continue;
-            if (!vis[to]) Q.push(to);
+            Q.push(to);
+            lst[to].first = from;
             vis[to] = 1;
-            lst[to] = from;
+            if (e.markChannel[t.channel] == -1) {
+                lst[to].second = e.id;
+            } else {
+            }
         }
     }
     return lst;
@@ -138,21 +150,23 @@ void bruteForce(Graph &G) {
     for (int i = 0; i < T; ++i) {
         auto lst = bfs(G, task[i]);
         int nowNode = task[i].to;
-        std::cerr << task[i].from << " " << task[i].to << std::endl;
         std::vector<int> dis;
+        // std::cerr << "#" << i << std::endl;
         while (nowNode != -1) {
-            std::cerr << nowNode << std::endl;
+            // std::cerr << nowNode << std::endl;
             task[i].pathNode.push_back(nowNode);
-            int lstNode = lst[nowNode];
+            int lstNode = lst[nowNode].first;
+            int edgeId = lst[nowNode].second;
             if (lstNode == -1) {
                 break;
             }
             if (edgeId != -1) {
-                task[i].pathEdge.push_back(edgeId);
+
             } else {
                 G.addEdge(lstNode, nowNode, G.mat[lstNode][nowNode]);
                 edgeId = G.cnt - 1;
             }
+            task[i].pathEdge.push_back(edgeId);
             for (auto &e : G.adj[nowNode]) {
                 if (e.id == edgeId) {
                     e.markChannel[task[i].channel] = task[i].id;
@@ -170,24 +184,40 @@ void bruteForce(Graph &G) {
         std::reverse(task[i].pathNode.begin(), task[i].pathNode.end());
         std::reverse(dis.begin(), dis.end());
         int nowDis = 0;
-        for (int j = 0; j < (int)dis.size() - 1; ++j) {
+        for (int j = 0; j < (int)dis.size(); ++j) {
             if (nowDis + dis[j] > D) {
                 task[i].station.push_back(task[i].pathNode[j]);
+                nowDis = 0;
             }
+            nowDis += dis[j];
         }
     }
 }
 
 void output(Graph &G) {
     std::cout << G.cnt - M << "\n";
+    std::vector<std::pair<int, std::pair<int, int>>> addEdge;
     for (int from = 0; from < N; ++from) {
         for (auto e : G.adj[from]) {
             int to = e.to;
             if (e.id < M) continue;
             if (from > to) continue;
-            std::cout << from << " " << to << "\n";
+            addEdge.push_back(std::make_pair(e.id, std::make_pair(from, to)));
+            // std::cout << from << " " << to << "\n";
         }
     }
+    sort(addEdge.begin(), addEdge.end());
+    for (auto e : addEdge) {
+        std::cout << e.second.first << " " << e.second.second << "\n";
+    }
+    // debug begin
+    // for (int i = 0; i < T; ++i) {
+    //     for (auto node : task[i].pathNode) {
+    //         std::cerr << node << " ";
+    //     }
+    //     std::cerr << std::endl;
+    // }
+    // debug end
     for (int i = 0; i < T; ++i) {
         std::cout << task[i].channel << " " << task[i].pathEdge.size() << " " << task[i].station.size();
         for (auto edgeId : task[i].pathEdge) {
