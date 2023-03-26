@@ -3,7 +3,7 @@
 using i64 = std::int64_t;
 
 constexpr int INF = std::numeric_limits<int>::max() / 2.0;
-constexpr uint32_t SEED = 229;
+constexpr uint32_t SEED = 120;
 
 std::mt19937 seed(SEED);
 
@@ -58,6 +58,7 @@ struct Graph {
 struct Task {
     int id;
     int from, to;
+    int shortestPathLen;
     int channel = -1;
     std::vector<int> pathEdge = {};
     std::vector<int> pathNode = {};
@@ -75,6 +76,27 @@ D: 衰减上限
 */
 int N, M, T, P, D;
 std::vector<Task> taskList;
+
+int solveTaskDistance(const Graph& G, int from, int to) {
+    std::vector<int> dis(N, -1);
+
+    std::queue<int> Q;
+    Q.push(from);
+    dis[from] = 0;
+
+    while (!Q.empty()) {
+        auto curNode = Q.front();
+        Q.pop();
+        for (const auto& edge : G.adj[curNode]) {
+            if (dis[edge.to] == -1) {
+                dis[edge.to] = dis[curNode] + 1;
+                Q.push(edge.to);
+            }
+        }
+    }
+
+    return dis[to];
+}
 
 std::vector<int> newBfs(const Graph& G, int from, int to) {
     // 若该两点不连通，则需要bfs出一条最短路，然后把这条最短路上的边重新加入一遍
@@ -309,8 +331,13 @@ int main() {
     for (int i = 0; i < T; i++) {
         int _from, _to;
         std::cin >> _from >> _to;
-        taskList.push_back({i, _from, _to});
+        auto _dis = solveTaskDistance(G, _from, _to);
+        taskList.push_back({i, _from, _to, _dis});
     }
+
+    std::sort(begin(taskList), end(taskList), [&](auto cmpA, auto cmpB) {
+        return cmpA.shortestPathLen > cmpB.shortestPathLen;
+    });
 
     solveAllTask(G);
     outputAnswer(G);
