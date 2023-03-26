@@ -9,7 +9,7 @@ std::mt19937 seed(SEED);
 
 inline int randomInt(int l, int r) {
     // return Int [l,r);
-    std::uniform_int_distribution<int> RNG(l, r + 1);
+    std::uniform_int_distribution<int> RNG(l, r - 1);
     return RNG(seed);
 }
 
@@ -42,7 +42,14 @@ struct Graph {
     inline void addEdge(int from, int to, int d) {
         adj[from].emplace_back(from, to, d, P, cnt);
         adj[to].emplace_back(to, from, d, P, cnt);
+
         mat[from][to] = mat[to][from] = std::min(mat[from][to], d);
+
+        if (from > to) std::swap(from, to);
+        edgeSet.push_back(
+            {Edge(from, to, d, P, cnt),
+             {(int)adj[from].size() - 1, (int)adj[to].size() - 1}});
+
         ++cnt;
         return;
     };
@@ -55,6 +62,7 @@ struct Task {
     std::vector<int> pathEdge = {};
     std::vector<int> pathNode = {};
     std::vector<int> station = {};
+    std::vector<int> dis = {};
     int totalSumChannel = 0;
 };
 
@@ -122,7 +130,7 @@ std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
     while (!Q.empty()) {
         auto curNode = Q.front();
         vis[curNode] = 1;
-        Q.empty();
+        Q.pop();
         if (curNode == to) break;
         std::vector<std::pair<int, int>> nextNodeList;
         for (const auto& edge : G.adj[curNode]) {
@@ -146,21 +154,105 @@ std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
 void solveSingleTask(Graph& G, Task& task) {
     for (int p = 0; p < P; p++) {
         auto curLast = singleChannelBfs(G, task.from, task.to, p);
-        // if (curLast.empty()) {
-        //     auto addPath = newBfs(G, task.from, task.to);
-        //     for (int i = 0; i < (int)addPath.size() - 1; i++) {
-        //         G.addEdge(addPath[i], addPath[i + 1],
-        //                   G.mat[addPath[i]][addPath[i + 1]]);
-        //     }
-        // }
+
+        if (curLast.empty()) continue;
 
         int curNode = task.to;
-        std::vector<int> resPathEdge, resNodeEdge;
-        int sumChannel;
+        std::vector<int> resPathEdge, resPathNode, resDis;
+        int sumChannel = 0;
+
         while (curNode != -1) {
-            resNodeEdge.push_back(curNode);
+            resPathNode.push_back(curNode);
+            auto [prevNode, prevEdge] = curLast[curNode];
+            curNode = prevNode;
+            if (prevEdge != -1) {
+                resPathEdge.push_back(prevEdge);
+                resDis.push_back(G.edgeSet[prevEdge].first.distance);
+                sumChannel += G.edgeSet[prevEdge].first.cntChannel;
+            }
+        }
+        std::reverse(begin(resPathEdge), end(resPathEdge));
+        std::reverse(begin(resPathNode), end(resPathEdge));
+        std::reverse(begin(resDis), end(resDis));
+
+        if (sumChannel > task.totalSumChannel) {
+            task.totalSumChannel = sumChannel;
+            task.pathEdge = std::move(resPathEdge);
+            task.pathNode = std::move(resPathNode);
+            task.dis = std::move(resDis);
+            task.channel = p;
         }
     }
+
+    if (task.pathNode.empty()) {
+        auto addPath = newBfs(G, task.from, task.to);
+        for (int i = 0; i < (int)addPath.size() - 1; i++) {
+            G.addEdge(addPath[i], addPath[i + 1],
+                      G.mat[addPath[i]][addPath[i + 1]]);
+        }
+
+        int randChannel = randomInt(0, P);
+        auto curLast = singleChannelBfs(G, task.from, task.to, randChannel);
+
+        int curNode = task.to;
+        std::vector<int> resPathEdge, resPathNode, resDis;
+        int sumChannel = 0;
+        while (curNode != -1) {
+            resPathNode.push_back(curNode);
+            auto [prevNode, prevEdge] = curLast[curNode];
+            curNode = prevNode;
+            if (prevEdge != -1) {
+                resPathEdge.push_back(prevEdge);
+                resDis.push_back(G.edgeSet[prevEdge].first.distance);
+                sumChannel += G.edgeSet[prevEdge].first.cntChannel;
+            }
+        }
+        std::reverse(begin(resPathEdge), end(resPathEdge));
+        std::reverse(begin(resPathNode), end(resPathEdge));
+        std::reverse(begin(resDis), end(resDis));
+
+        task.totalSumChannel = sumChannel;
+        task.pathEdge = std::move(resPathEdge);
+        task.pathNode = std::move(resPathNode);
+        task.dis = std::move(resDis);
+        task.channel = randChannel;
+    }
+
+    int finalChannel = task.channel;
+    for (auto edgeId : task.pathEdge) {
+        G.edgeSet[edgeId].first.markChannel[finalChannel] = task.id;
+        G.edgeSet[edgeId].first.cntChannel--;
+
+        int _u = G.edgeSet[edgeId].first.from;
+        int _v = G.edgeSet[edgeId].first.to;
+        if (_u > _v) std::swap(_u, _v);
+
+        int _uId = G.edgeSet[edgeId].second.first;
+        int _vId = G.edgeSet[edgeId].second.second;
+
+        G.adj[_u][_uId].markChannel[finalChannel] = task.id;
+        G.adj[_u][_uId].cntChannel--;
+        G.adj[_v][_vId].markChannel[finalChannel] = task.id;
+        G.adj[_v][_vId].cntChannel--;
+    }
+
+    int nowDis = 0;
+    for (int i = 0; i < (int)task.pathNode.size() - 1; i++) {
+        if (nowDis + task.dis[i] > D) {
+            task.station.push_back(task.pathNode[i]);
+            nowDis = 0;
+        }
+        nowDis += task.dis[i];
+    }
+
+    return;
+}
+
+void solveAllTask(Graph& G) {
+    for (int i = 0; i < T; i++) {
+        solveSingleTask(G, taskList[i]);
+    }
+    return;
 }
 
 void outputAnswer(const Graph& G) {
@@ -207,6 +299,9 @@ int main() {
         std::cin >> _from >> _to;
         taskList.push_back({i, _from, _to});
     }
+
+    solveAllTask(G);
+    outputAnswer(G);
 
     return 0;
 }
