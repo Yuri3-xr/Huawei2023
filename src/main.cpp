@@ -102,6 +102,7 @@ std::vector<int> newBfs(const Graph& G, int from, int to) {
         std::sort(begin(nextNodeList), end(nextNodeList));
         for (const auto& [cnt, node] : nextNodeList) {
             Q.push(node);
+            vis[node] = 1;
         }
     }
 
@@ -117,7 +118,7 @@ std::vector<int> newBfs(const Graph& G, int from, int to) {
 }
 
 std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
-                                                  int to, int P) {
+                                                  int to, int p) {
     // 对于P信道单独bfs
     // 同样是启发式bfs
     // 注意这里返回的是前驱数组，如果不可道，则返回空
@@ -134,7 +135,7 @@ std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
         if (curNode == to) break;
         std::vector<std::pair<int, int>> nextNodeList;
         for (const auto& edge : G.adj[curNode]) {
-            if (edge.markChannel[P] != -1) continue;
+            if (edge.markChannel[p] != -1) continue;
             if (!vis[edge.to]) {
                 nextNodeList.emplace_back(-edge.cntChannel, edge.to);
                 last[edge.to] = {curNode, edge.id};
@@ -144,6 +145,7 @@ std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
         std::sort(begin(nextNodeList), end(nextNodeList));
         for (const auto& [cnt, node] : nextNodeList) {
             Q.push(node);
+            vis[node] = 1;
         }
     }
 
@@ -154,7 +156,6 @@ std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
 void solveSingleTask(Graph& G, Task& task) {
     for (int p = 0; p < P; p++) {
         auto curLast = singleChannelBfs(G, task.from, task.to, p);
-
         if (curLast.empty()) continue;
 
         int curNode = task.to;
@@ -172,7 +173,7 @@ void solveSingleTask(Graph& G, Task& task) {
             }
         }
         std::reverse(begin(resPathEdge), end(resPathEdge));
-        std::reverse(begin(resPathNode), end(resPathEdge));
+        std::reverse(begin(resPathNode), end(resPathNode));
         std::reverse(begin(resDis), end(resDis));
 
         if (sumChannel > task.totalSumChannel) {
@@ -183,7 +184,6 @@ void solveSingleTask(Graph& G, Task& task) {
             task.channel = p;
         }
     }
-
     if (task.pathNode.empty()) {
         auto addPath = newBfs(G, task.from, task.to);
         for (int i = 0; i < (int)addPath.size() - 1; i++) {
@@ -208,7 +208,7 @@ void solveSingleTask(Graph& G, Task& task) {
             }
         }
         std::reverse(begin(resPathEdge), end(resPathEdge));
-        std::reverse(begin(resPathNode), end(resPathEdge));
+        std::reverse(begin(resPathNode), end(resPathNode));
         std::reverse(begin(resDis), end(resDis));
 
         task.totalSumChannel = sumChannel;
@@ -257,13 +257,20 @@ void solveAllTask(Graph& G) {
 
 void outputAnswer(const Graph& G) {
     std::cout << G.cnt - M << "\n";
+
+    std::vector<std::tuple<int, int, int>> edgeList;
     for (int from = 0; from < N; ++from) {
         for (auto e : G.adj[from]) {
             int to = e.to;
             if (e.id < M) continue;
             if (from > to) continue;
-            std::cout << from << " " << to << "\n";
+            edgeList.emplace_back(e.id, from, to);
         }
+    }
+
+    std::sort(begin(edgeList), end(edgeList));
+    for (auto [id, u, v] : edgeList) {
+        std::cout << u << " " << v << '\n';
     }
 
     for (int i = 0; i < T; ++i) {
