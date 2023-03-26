@@ -9,7 +9,7 @@ std::mt19937 seed(SEED);
 
 inline int randomInt(int l, int r) {
     // return Int [l,r);
-    std::uniform_int_distribution<int> RNG(l, r + 1);
+    std::uniform_int_distribution<int> RNG(l, r - 1);
     return RNG(seed);
 }
 
@@ -42,7 +42,14 @@ struct Graph {
     inline void addEdge(int from, int to, int d) {
         adj[from].emplace_back(from, to, d, P, cnt);
         adj[to].emplace_back(to, from, d, P, cnt);
+
         mat[from][to] = mat[to][from] = std::min(mat[from][to], d);
+
+        if (from > to) std::swap(from, to);
+        edgeSet.push_back(
+            {Edge(from, to, d, P, cnt),
+             {(int)adj[from].size() - 1, (int)adj[to].size() - 1}});
+
         ++cnt;
         return;
     };
@@ -55,6 +62,7 @@ struct Task {
     std::vector<int> pathEdge = {};
     std::vector<int> pathNode = {};
     std::vector<int> station = {};
+    std::vector<int> dis = {};
     int totalSumChannel = 0;
 };
 
@@ -70,13 +78,20 @@ std::vector<Task> taskList;
 
 void outputAnswer(const Graph& G) {
     std::cout << G.cnt - M << "\n";
+
+    std::vector<std::tuple<int, int, int>> edgeList;
     for (int from = 0; from < N; ++from) {
         for (auto e : G.adj[from]) {
             int to = e.to;
             if (e.id < M) continue;
             if (from > to) continue;
-            std::cout << from << " " << to << "\n";
+            edgeList.emplace_back(e.id, from, to);
         }
+    }
+
+    std::sort(begin(edgeList), end(edgeList));
+    for (auto [id, u, v] : edgeList) {
+        std::cout << u << " " << v << '\n';
     }
 
     for (int i = 0; i < T; ++i) {
