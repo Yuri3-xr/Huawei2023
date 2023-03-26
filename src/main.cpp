@@ -76,6 +76,7 @@ D: 衰减上限
 int N, M, T, P, D;
 std::vector<Task> taskList;
 
+
 void outputAnswer(const Graph& G) {
     std::cout << G.cnt - M << "\n";
 
@@ -94,7 +95,12 @@ void outputAnswer(const Graph& G) {
         std::cout << u << " " << v << '\n';
     }
 
+    std::vector<int> taskIndex(T);
     for (int i = 0; i < T; ++i) {
+        taskIndex[taskList[i].id] = i;
+    }
+    for (int pt = 0; pt < T; ++pt) {
+        int i = taskIndex[pt];
         std::cout << taskList[i].channel << " "
                   << (int)taskList[i].pathEdge.size() << " "
                   << (int)taskList[i].station.size();
