@@ -64,6 +64,7 @@ struct Task {
     std::vector<int> station = {};
     std::vector<int> dis = {};
     int totalSumChannel = 0;
+    int distance = INF;
 };
 
 /*
@@ -75,7 +76,6 @@ D: 衰减上限
 */
 int N, M, T, P, D;
 std::vector<Task> taskList;
-
 
 void outputAnswer(const Graph& G) {
     std::cout << G.cnt - M << "\n";
