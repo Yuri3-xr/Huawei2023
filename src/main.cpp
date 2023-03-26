@@ -68,6 +68,101 @@ D: 衰减上限
 int N, M, T, P, D;
 std::vector<Task> taskList;
 
+std::vector<int> newBfs(const Graph& G, int from, int to) {
+    // 若该两点不连通，则需要bfs出一条最短路，然后把这条最短路上的边重新加入一遍
+    // 启发式去做bfs，因为这些边需要被加，所以每次拓展时，按照当前的剩余信道数排序拓展
+    // 返回新加的边的点序列
+    std::vector<int> vis(N, 0);
+    std::vector<int> last(N, -1);
+
+    std::queue<int> Q;
+    Q.push(from);
+
+    while (!Q.empty()) {
+        auto curNode = Q.front();
+        vis[curNode] = 1;
+        Q.pop();
+        if (curNode == to) break;
+        std::vector<std::pair<int, int>> nextNodeList;
+        for (const auto& edge : G.adj[curNode]) {
+            if (!vis[edge.to]) {
+                nextNodeList.emplace_back(edge.cntChannel, edge.to);
+                last[edge.to] = curNode;
+            }
+        }
+        // 启发式，剩余信道少的边先拓展
+        std::sort(begin(nextNodeList), end(nextNodeList));
+        for (const auto& [cnt, node] : nextNodeList) {
+            Q.push(node);
+        }
+    }
+
+    int pNode = to;
+    std::vector<int> ret;
+    while (pNode != -1) {
+        ret.push_back(pNode);
+        pNode = last[pNode];
+    }
+    std::reverse(begin(ret), end(ret));
+
+    return ret;
+}
+
+std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
+                                                  int to, int P) {
+    // 对于P信道单独bfs
+    // 同样是启发式bfs
+    // 注意这里返回的是前驱数组，如果不可道，则返回空
+    std::vector<int> vis(N, 0);
+    std::vector<std::pair<int, int>> last(N, {-1, -1});
+
+    std::queue<int> Q;
+    Q.push(from);
+
+    while (!Q.empty()) {
+        auto curNode = Q.front();
+        vis[curNode] = 1;
+        Q.empty();
+        if (curNode == to) break;
+        std::vector<std::pair<int, int>> nextNodeList;
+        for (const auto& edge : G.adj[curNode]) {
+            if (edge.markChannel[P] != -1) continue;
+            if (!vis[edge.to]) {
+                nextNodeList.emplace_back(-edge.cntChannel, edge.to);
+                last[edge.to] = {curNode, edge.id};
+            }
+        }
+        // 启发式，剩余信道多的边先拓展
+        std::sort(begin(nextNodeList), end(nextNodeList));
+        for (const auto& [cnt, node] : nextNodeList) {
+            Q.push(node);
+        }
+    }
+
+    if (vis[to] == 0) return {};
+    return last;
+}
+
+void solveSingleTask(Graph& G, Task& task) {
+    for (int p = 0; p < P; p++) {
+        auto curLast = singleChannelBfs(G, task.from, task.to, p);
+        // if (curLast.empty()) {
+        //     auto addPath = newBfs(G, task.from, task.to);
+        //     for (int i = 0; i < (int)addPath.size() - 1; i++) {
+        //         G.addEdge(addPath[i], addPath[i + 1],
+        //                   G.mat[addPath[i]][addPath[i + 1]]);
+        //     }
+        // }
+
+        int curNode = task.to;
+        std::vector<int> resPathEdge, resNodeEdge;
+        int sumChannel;
+        while (curNode != -1) {
+            resNodeEdge.push_back(curNode);
+        }
+    }
+}
+
 void outputAnswer(const Graph& G) {
     std::cout << G.cnt - M << "\n";
     for (int from = 0; from < N; ++from) {
