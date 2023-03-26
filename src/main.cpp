@@ -36,9 +36,11 @@ struct Graph {
     std::vector<std::vector<int>> mat;
     std::vector<std::pair<Edge, std::pair<int, int>>>
         edgeSet;  // 第二个pair表示u,v(u<v) {u的位置，v的位置}
+    std::vector<int> deg;
     int P;
     int cnt = 0;
-    Graph(int n, int P) : adj(n), P(P), mat(n, std::vector<int>(n, INF)){};
+    Graph(int n, int P)
+        : adj(n), deg(n), P(P), mat(n, std::vector<int>(n, INF)){};
     inline void addEdge(int from, int to, int d) {
         adj[from].emplace_back(from, to, d, P, cnt);
         adj[to].emplace_back(to, from, d, P, cnt);
@@ -49,6 +51,8 @@ struct Graph {
         edgeSet.push_back(
             {Edge(from, to, d, P, cnt),
              {(int)adj[from].size() - 1, (int)adj[to].size() - 1}});
+
+        deg[from]++, deg[to]++;
 
         ++cnt;
         return;
@@ -64,7 +68,7 @@ struct Task {
     std::vector<int> pathNode = {};
     std::vector<int> station = {};
     std::vector<int> dis = {};
-    int totalSumChannel = 0;
+    int totalMinChannel = 0;
 };
 
 /*
@@ -98,6 +102,13 @@ int solveTaskDistance(const Graph& G, int from, int to) {
     return dis[to];
 }
 
+struct BFSNode {
+    int cntChannel, nextDeg, nextNode;
+    friend bool operator<(const BFSNode& opA, const BFSNode& opB) {
+        return std::make_pair(opA.cntChannel, -opA.nextDeg) <
+               std::make_pair(opB.cntChannel, -opB.nextDeg);
+    }
+};
 std::vector<int> newBfs(const Graph& G, int from, int to) {
     // 若该两点不连通，则需要bfs出一条最短路，然后把这条最短路上的边重新加入一遍
     // 启发式去做bfs，因为这些边需要被加，所以每次拓展时，按照当前的剩余信道数排序拓展
@@ -113,16 +124,17 @@ std::vector<int> newBfs(const Graph& G, int from, int to) {
         vis[curNode] = 1;
         Q.pop();
         if (curNode == to) break;
-        std::vector<std::pair<int, int>> nextNodeList;
+        std::vector<BFSNode> nextNodeList;
         for (const auto& edge : G.adj[curNode]) {
             if (!vis[edge.to]) {
-                nextNodeList.emplace_back(edge.cntChannel, edge.to);
+                nextNodeList.push_back(
+                    {edge.cntChannel, G.deg[edge, to], edge.to});
                 last[edge.to] = curNode;
             }
         }
         // 启发式，剩余信道少的边先拓展
         std::sort(begin(nextNodeList), end(nextNodeList));
-        for (const auto& [cnt, node] : nextNodeList) {
+        for (const auto& [cnt, nextDeg, node] : nextNodeList) {
             Q.push(node);
             vis[node] = 1;
         }
@@ -155,17 +167,19 @@ std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
         vis[curNode] = 1;
         Q.pop();
         if (curNode == to) break;
-        std::vector<std::pair<int, int>> nextNodeList;
+        std::vector<BFSNode> nextNodeList;
+
         for (const auto& edge : G.adj[curNode]) {
             if (edge.markChannel[p] != -1) continue;
             if (!vis[edge.to]) {
-                nextNodeList.emplace_back(-edge.cntChannel, edge.to);
+                nextNodeList.push_back(
+                    {-edge.cntChannel, -G.deg[edge.to], edge.to});
                 last[edge.to] = {curNode, edge.id};
             }
         }
         // 启发式，剩余信道多的边先拓展
         std::sort(begin(nextNodeList), end(nextNodeList));
-        for (const auto& [cnt, node] : nextNodeList) {
+        for (const auto& [cnt, nextDeg, node] : nextNodeList) {
             Q.push(node);
             vis[node] = 1;
         }
@@ -182,7 +196,7 @@ void solveSingleTask(Graph& G, Task& task) {
 
         int curNode = task.to;
         std::vector<int> resPathEdge, resPathNode, resDis;
-        int sumChannel = 0;
+        int minChannel = INF;
 
         while (curNode != -1) {
             resPathNode.push_back(curNode);
@@ -191,21 +205,23 @@ void solveSingleTask(Graph& G, Task& task) {
             if (prevEdge != -1) {
                 resPathEdge.push_back(prevEdge);
                 resDis.push_back(G.edgeSet[prevEdge].first.distance);
-                sumChannel += G.edgeSet[prevEdge].first.cntChannel;
+                minChannel =
+                    std::min(minChannel, G.edgeSet[prevEdge].first.cntChannel);
             }
         }
         std::reverse(begin(resPathEdge), end(resPathEdge));
         std::reverse(begin(resPathNode), end(resPathNode));
         std::reverse(begin(resDis), end(resDis));
 
-        if (sumChannel > task.totalSumChannel) {
-            task.totalSumChannel = sumChannel;
+        if (minChannel > task.totalMinChannel) {
+            task.totalMinChannel = minChannel;
             task.pathEdge = std::move(resPathEdge);
             task.pathNode = std::move(resPathNode);
             task.dis = std::move(resDis);
             task.channel = p;
         }
     }
+
     if (task.pathNode.empty()) {
         auto addPath = newBfs(G, task.from, task.to);
         for (int i = 0; i < (int)addPath.size() - 1; i++) {
@@ -218,7 +234,7 @@ void solveSingleTask(Graph& G, Task& task) {
 
         int curNode = task.to;
         std::vector<int> resPathEdge, resPathNode, resDis;
-        int sumChannel = 0;
+        int minChannel = 0;
         while (curNode != -1) {
             resPathNode.push_back(curNode);
             auto [prevNode, prevEdge] = curLast[curNode];
@@ -226,14 +242,15 @@ void solveSingleTask(Graph& G, Task& task) {
             if (prevEdge != -1) {
                 resPathEdge.push_back(prevEdge);
                 resDis.push_back(G.edgeSet[prevEdge].first.distance);
-                sumChannel += G.edgeSet[prevEdge].first.cntChannel;
+                minChannel =
+                    std::min(minChannel, G.edgeSet[prevEdge].first.cntChannel);
             }
         }
         std::reverse(begin(resPathEdge), end(resPathEdge));
         std::reverse(begin(resPathNode), end(resPathNode));
         std::reverse(begin(resDis), end(resDis));
 
-        task.totalSumChannel = sumChannel;
+        task.totalMinChannel = minChannel;
         task.pathEdge = std::move(resPathEdge);
         task.pathNode = std::move(resPathNode);
         task.dis = std::move(resDis);
