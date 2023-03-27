@@ -6,6 +6,19 @@ constexpr int INF = std::numeric_limits<int>::max() / 2.0;
 constexpr uint32_t SEED = 120;
 
 std::mt19937 seed(SEED);
+struct Timer {
+    std::chrono::high_resolution_clock::time_point st;
+
+    Timer() { reset(); }
+
+    void reset() { st = std::chrono::high_resolution_clock::now(); }
+
+    std::chrono::milliseconds::rep elapsed() {
+        auto ed = std::chrono::high_resolution_clock::now();
+        return std::chrono::duration_cast<std::chrono::milliseconds>(ed - st)
+            .count();
+    }
+};
 
 inline int randomInt(int l, int r) {
     // return Int [l,r);
@@ -36,11 +49,9 @@ struct Graph {
     std::vector<std::vector<int>> mat;
     std::vector<std::pair<Edge, std::pair<int, int>>>
         edgeSet;  // 第二个pair表示u,v(u<v) {u的位置，v的位置}
-    std::vector<int> deg;
     int P;
     int cnt = 0;
-    Graph(int n, int P)
-        : adj(n), deg(n), P(P), mat(n, std::vector<int>(n, INF)){};
+    Graph(int n, int P) : adj(n), P(P), mat(n, std::vector<int>(n, INF)){};
     inline void addEdge(int from, int to, int d) {
         adj[from].emplace_back(from, to, d, P, cnt);
         adj[to].emplace_back(to, from, d, P, cnt);
@@ -51,8 +62,6 @@ struct Graph {
         edgeSet.push_back(
             {Edge(from, to, d, P, cnt),
              {(int)adj[from].size() - 1, (int)adj[to].size() - 1}});
-
-        deg[from]++, deg[to]++;
 
         ++cnt;
         return;
@@ -69,6 +78,7 @@ struct Task {
     std::vector<int> station = {};
     std::vector<int> dis = {};
     int totalMinChannel = 0;
+    int totalSumDistance = 0;
 };
 
 /*
@@ -103,10 +113,10 @@ int solveTaskDistance(const Graph& G, int from, int to) {
 }
 
 struct BFSNode {
-    int cntChannel, nextDeg, nextNode;
+    int cntChannel, distance, nextNode;
     friend bool operator<(const BFSNode& opA, const BFSNode& opB) {
-        return std::make_pair(opA.cntChannel, -opA.nextDeg) <
-               std::make_pair(opB.cntChannel, -opB.nextDeg);
+        return std::make_pair(opA.cntChannel, opA.distance) <
+               std::make_pair(opB.cntChannel, opB.distance);
     }
 };
 std::vector<int> newBfs(const Graph& G, int from, int to) {
@@ -128,7 +138,7 @@ std::vector<int> newBfs(const Graph& G, int from, int to) {
         for (const auto& edge : G.adj[curNode]) {
             if (!vis[edge.to]) {
                 nextNodeList.push_back(
-                    {edge.cntChannel, G.deg[edge, to], edge.to});
+                    {edge.cntChannel, edge.distance, edge.to});
                 last[edge.to] = curNode;
             }
         }
@@ -173,7 +183,7 @@ std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
             if (edge.markChannel[p] != -1) continue;
             if (!vis[edge.to]) {
                 nextNodeList.push_back(
-                    {-edge.cntChannel, -G.deg[edge.to], edge.to});
+                    {-edge.cntChannel, edge.distance, edge.to});
                 last[edge.to] = {curNode, edge.id};
             }
         }
@@ -197,7 +207,7 @@ void solveSingleTask(Graph& G, Task& task) {
         int curNode = task.to;
         std::vector<int> resPathEdge, resPathNode, resDis;
         int minChannel = INF;
-
+        int sumDistance = 0;
         while (curNode != -1) {
             resPathNode.push_back(curNode);
             auto [prevNode, prevEdge] = curLast[curNode];
@@ -207,14 +217,17 @@ void solveSingleTask(Graph& G, Task& task) {
                 resDis.push_back(G.edgeSet[prevEdge].first.distance);
                 minChannel =
                     std::min(minChannel, G.edgeSet[prevEdge].first.cntChannel);
+                sumDistance += G.edgeSet[prevEdge].first.distance;
             }
         }
         std::reverse(begin(resPathEdge), end(resPathEdge));
         std::reverse(begin(resPathNode), end(resPathNode));
         std::reverse(begin(resDis), end(resDis));
 
-        if (minChannel > task.totalMinChannel) {
+        if (std::make_pair(minChannel, -sumDistance) >
+            std::make_pair(task.totalMinChannel, -task.totalSumDistance)) {
             task.totalMinChannel = minChannel;
+            task.totalSumDistance = sumDistance;
             task.pathEdge = std::move(resPathEdge);
             task.pathNode = std::move(resPathNode);
             task.dis = std::move(resDis);
@@ -235,6 +248,8 @@ void solveSingleTask(Graph& G, Task& task) {
         int curNode = task.to;
         std::vector<int> resPathEdge, resPathNode, resDis;
         int minChannel = 0;
+        int sumDistance = 0;
+
         while (curNode != -1) {
             resPathNode.push_back(curNode);
             auto [prevNode, prevEdge] = curLast[curNode];
@@ -244,13 +259,16 @@ void solveSingleTask(Graph& G, Task& task) {
                 resDis.push_back(G.edgeSet[prevEdge].first.distance);
                 minChannel =
                     std::min(minChannel, G.edgeSet[prevEdge].first.cntChannel);
+                sumDistance += G.edgeSet[prevEdge].first.cntChannel;
             }
         }
+
         std::reverse(begin(resPathEdge), end(resPathEdge));
         std::reverse(begin(resPathNode), end(resPathNode));
         std::reverse(begin(resDis), end(resDis));
 
         task.totalMinChannel = minChannel;
+        task.totalSumDistance = sumDistance;
         task.pathEdge = std::move(resPathEdge);
         task.pathNode = std::move(resPathNode);
         task.dis = std::move(resDis);
@@ -332,11 +350,11 @@ void outputAnswer(const Graph& G) {
 
     return;
 }
-
 int main() {
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
-
+    Timer timer;
+    timer.reset();
     std::cin >> N >> M >> T >> P >> D;
     Graph G(N, P);
     for (int i = 0; i < M; i++) {
@@ -352,12 +370,17 @@ int main() {
         taskList.push_back({i, _from, _to, _dis});
     }
 
+    std::srand(SEED);
+    std::random_shuffle(begin(taskList), end(taskList));
+
     std::sort(begin(taskList), end(taskList), [&](auto cmpA, auto cmpB) {
         return cmpA.shortestPathLen > cmpB.shortestPathLen;
     });
 
     solveAllTask(G);
     outputAnswer(G);
+
+    // std::cerr << timer.elapsed() << "ms" << std::endl;
 
     return 0;
 }
