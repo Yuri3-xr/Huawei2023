@@ -37,7 +37,7 @@ def check(id, channel, path_list, station_list):
     lst = task[0]
     to = task[1]
     now_dis = 0
-    
+
     for edge_id in path_list:
         u = edge_index[edge_id][0]
         v = edge_index[edge_id][1]
@@ -145,4 +145,5 @@ finally:
 
 
 print('CHECK: OK!')
+print('ANS: {}'.format(ans))
 
