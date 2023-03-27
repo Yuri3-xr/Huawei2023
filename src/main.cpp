@@ -151,11 +151,43 @@ std::vector<int> newBfs(const Graph& G, int from, int to) {
     return ret;
 }
 
-std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
-                                                  int to, int p) {
-    // 对于P信道单独bfs
-    // 同样是启发式bfs
+struct UnionFind {
+    std::vector<int> data;
+    UnionFind(int N) : data(N, -1) {}
+
+    int find(int k) { return data[k] < 0 ? k : data[k] = find(data[k]); }
+
+    int unite(int x, int y) {
+        if ((x = find(x)) == (y = find(y))) return false;
+        if (data[x] > data[y]) std::swap(x, y);
+        data[x] += data[y];
+        data[y] = x;
+        return true;
+    }
+
+    int size(int k) { return -data[find(k)]; }
+
+    int same(int x, int y) { return find(x) == find(y); }
+};
+
+std::vector<std::pair<int, int>> singleChannelBfs(
+    const Graph& G,
+    const std::vector<std::pair<Edge, std::pair<int, int>>>& sortedEdgeSet,
+    int from, int to, int p) {
     // 注意这里返回的是前驱数组，如果不可道，则返回空
+    std::vector<int> mstEdgeSeg(G.cnt);  // 桶记录当前边在不在MST中
+    UnionFind uf(N);
+
+    for (const auto& [edge, _] : sortedEdgeSet) {
+        if (edge.markChannel[p] != -1) continue;
+        if (!uf.same(edge.from, edge.to)) {
+            uf.unite(edge.from, edge.to);
+            mstEdgeSeg[edge.id] = 1;
+        }
+        if (uf.same(from, to)) break;
+    }
+    if (!uf.same(from, to)) return {};
+
     std::vector<int> vis(N, 0);
     std::vector<std::pair<int, int>> last(N, {-1, -1});
 
@@ -167,21 +199,13 @@ std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
         vis[curNode] = 1;
         Q.pop();
         if (curNode == to) break;
-        std::vector<BFSNode> nextNodeList;
-
         for (const auto& edge : G.adj[curNode]) {
-            if (edge.markChannel[p] != -1) continue;
+            if (mstEdgeSeg[edge.id] == 0) continue;
             if (!vis[edge.to]) {
-                nextNodeList.push_back(
-                    {-edge.cntChannel, -G.deg[edge.to], edge.to});
                 last[edge.to] = {curNode, edge.id};
+                vis[edge.to] = 1;
+                Q.push(edge.to);
             }
-        }
-        // 启发式，剩余信道多的边先拓展
-        std::sort(begin(nextNodeList), end(nextNodeList));
-        for (const auto& [cnt, nextDeg, node] : nextNodeList) {
-            Q.push(node);
-            vis[node] = 1;
         }
     }
 
@@ -190,8 +214,14 @@ std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
 }
 
 void solveSingleTask(Graph& G, Task& task) {
+    auto curEdgeSet = G.edgeSet;
+    std::sort(begin(curEdgeSet), end(curEdgeSet),
+              [&](const auto& A, const auto& B) {
+                  return A.first.cntChannel > B.first.cntChannel;
+              });
+
     for (int p = 0; p < P; p++) {
-        auto curLast = singleChannelBfs(G, task.from, task.to, p);
+        auto curLast = singleChannelBfs(G, curEdgeSet, task.from, task.to, p);
         if (curLast.empty()) continue;
 
         int curNode = task.to;
@@ -228,9 +258,14 @@ void solveSingleTask(Graph& G, Task& task) {
             G.addEdge(addPath[i], addPath[i + 1],
                       G.mat[addPath[i]][addPath[i + 1]]);
         }
-
+        auto curEdgeSet = G.edgeSet;
+        std::sort(begin(curEdgeSet), end(curEdgeSet),
+                  [&](const auto& A, const auto& B) {
+                      return A.first.cntChannel > B.first.cntChannel;
+                  });
         int randChannel = randomInt(0, P);
-        auto curLast = singleChannelBfs(G, task.from, task.to, randChannel);
+        auto curLast =
+            singleChannelBfs(G, curEdgeSet, task.from, task.to, randChannel);
 
         int curNode = task.to;
         std::vector<int> resPathEdge, resPathNode, resDis;
