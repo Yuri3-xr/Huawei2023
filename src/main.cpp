@@ -205,7 +205,7 @@ std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
     return last;
 }
 
-int bestChannel(Graph &G, Task &task, std::vector<int> pathNode, std::vector<int> pathEdge) {
+int bestChannel(Graph &G, Task &task, std::vector<int> &pathNode, std::vector<int> &pathEdge) {
     int bestChannel = -1, bestCnt = -1;
     for (int p = 0; p < P; ++p) {
         int cnt = 0;
@@ -271,21 +271,12 @@ void solveSingleTask(Graph& G, Task& task) {
     }
 
     if (task.pathNode.empty()) {
-        // int randChannel = randomInt(0, P);
         
         auto [addPathNode, addPathEdge] = newBfs(G, task.from, task.to);
 
-        int randChannel = bestChannel(G, task, addPathNode, addPathEdge); // this variable's name should be modified.
+        int trueChannel = bestChannel(G, task, addPathNode, addPathEdge); // this variable's name should be modified.
 
-        // for (int i = 0; i < (int)addPathEdge.size(); i++) {
-        //     int u = addPathNode[i], v = addPathNode[i + 1];
-        //     auto edge = G.edgeSet[addPathEdge[i]].first;
-        //     if (edge.markChannel[randChannel])
-        //     G.addEdge(addPath[i], addPath[i + 1],
-        //               G.mat[addPath[i]][addPath[i + 1]]);
-        // }
-
-        auto curLast = singleChannelBfs(G, task.from, task.to, randChannel);
+        auto curLast = singleChannelBfs(G, task.from, task.to, trueChannel);
 
         int curNode = task.to;
         std::vector<int> resPathEdge, resPathNode, resDis;
@@ -314,7 +305,7 @@ void solveSingleTask(Graph& G, Task& task) {
         task.pathEdge = std::move(resPathEdge);
         task.pathNode = std::move(resPathNode);
         task.dis = std::move(resDis);
-        task.channel = randChannel;
+        task.channel = trueChannel;
     }
 
     int finalChannel = task.channel;
