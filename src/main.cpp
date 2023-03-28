@@ -119,12 +119,12 @@ struct BFSNode {
                std::make_pair(opB.cntChannel, opB.distance);
     }
 };
-std::vector<int> newBfs(const Graph& G, int from, int to) {
+std::pair<std::vector<int>, std::vector<int>> newBfs(const Graph& G, int from, int to) {
     // 若该两点不连通，则需要bfs出一条最短路，然后把这条最短路上的边重新加入一遍
     // 启发式去做bfs，因为这些边需要被加，所以每次拓展时，按照当前的剩余信道数排序拓展
     // 返回新加的边的点序列
     std::vector<int> vis(N, 0);
-    std::vector<int> last(N, -1);
+    std::vector<std::pair<int, int>> last(N, {-1, -1});
 
     std::queue<int> Q;
     Q.push(from);
@@ -139,7 +139,8 @@ std::vector<int> newBfs(const Graph& G, int from, int to) {
             if (!vis[edge.to]) {
                 nextNodeList.push_back(
                     {edge.cntChannel, edge.distance, edge.to});
-                last[edge.to] = curNode;
+                last[edge.to].first = curNode;
+                last[edge.to].second = edge.id;
             }
         }
         // 启发式，剩余信道少的边先拓展
@@ -151,14 +152,19 @@ std::vector<int> newBfs(const Graph& G, int from, int to) {
     }
 
     int pNode = to;
-    std::vector<int> ret;
+    std::vector<int> pathNode;
+    std::vector<int> pathEdge;
     while (pNode != -1) {
-        ret.push_back(pNode);
-        pNode = last[pNode];
+        pathNode.push_back(pNode);
+        if (last[pNode].second != -1) {
+            pathEdge.push_back(last[pNode].second);
+        }
+        pNode = last[pNode].first;
     }
-    std::reverse(begin(ret), end(ret));
+    std::reverse(begin(pathNode), end(pathNode));
+    std::reverse(begin(pathEdge), end(pathEdge));
 
-    return ret;
+    return std::make_pair(pathNode, pathEdge);
 }
 
 std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
@@ -199,6 +205,35 @@ std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
     return last;
 }
 
+int bestChannel(Graph &G, Task &task, std::vector<int> pathNode, std::vector<int> pathEdge) {
+    int bestChannel = -1, bestCnt = -1;
+    for (int p = 0; p < P; ++p) {
+        int cnt = 0;
+        for (int i = 0; i < (int)pathEdge.size(); ++i) {
+            auto edge = G.edgeSet[pathEdge[i]].first;
+            if (edge.markChannel[p] != -1) {
+                ++cnt;
+            }
+        }
+        if (bestChannel == -1) {
+            bestChannel = p;
+            bestCnt = cnt;
+        } else if (bestCnt > cnt) {
+            bestChannel = p;
+            bestCnt = cnt;
+        }
+    }
+    for (int i = 0; i < (int)pathEdge.size(); ++i) {
+        int u = pathNode[i], v = pathNode[i + 1];
+        auto edge = G.edgeSet[pathEdge[i]].first;
+        if (edge.markChannel[bestChannel] != -1) {
+            G.addEdge(u, v,
+                      G.mat[u][v]);
+        }
+    }
+    return bestChannel;
+}
+
 void solveSingleTask(Graph& G, Task& task) {
     for (int p = 0; p < P; p++) {
         auto curLast = singleChannelBfs(G, task.from, task.to, p);
@@ -236,13 +271,20 @@ void solveSingleTask(Graph& G, Task& task) {
     }
 
     if (task.pathNode.empty()) {
-        auto addPath = newBfs(G, task.from, task.to);
-        for (int i = 0; i < (int)addPath.size() - 1; i++) {
-            G.addEdge(addPath[i], addPath[i + 1],
-                      G.mat[addPath[i]][addPath[i + 1]]);
-        }
+        // int randChannel = randomInt(0, P);
+        
+        auto [addPathNode, addPathEdge] = newBfs(G, task.from, task.to);
 
-        int randChannel = randomInt(0, P);
+        int randChannel = bestChannel(G, task, addPathNode, addPathEdge); // this variable's name should be modified.
+
+        // for (int i = 0; i < (int)addPathEdge.size(); i++) {
+        //     int u = addPathNode[i], v = addPathNode[i + 1];
+        //     auto edge = G.edgeSet[addPathEdge[i]].first;
+        //     if (edge.markChannel[randChannel])
+        //     G.addEdge(addPath[i], addPath[i + 1],
+        //               G.mat[addPath[i]][addPath[i + 1]]);
+        // }
+
         auto curLast = singleChannelBfs(G, task.from, task.to, randChannel);
 
         int curNode = task.to;
