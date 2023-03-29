@@ -4,6 +4,7 @@ using i64 = std::int64_t;
 
 constexpr int INF = std::numeric_limits<int>::max() / 2.0;
 constexpr uint32_t SEED = 120;
+constexpr i64 H = 1e6;
 
 std::mt19937 seed(SEED);
 struct Timer {
@@ -90,6 +91,7 @@ D: 衰减上限
 */
 int N, M, T, P, D;
 std::vector<Task> taskList;
+std::vector<i64> nodeValue;
 
 int solveTaskDistance(const Graph& G, int from, int to) {
     std::vector<int> dis(N, -1);
@@ -383,6 +385,53 @@ void outputAnswer(const Graph& G) {
 
     return;
 }
+
+
+std::pair<std::vector<int>, std::vector<i64>> getDownToNodes(Graph &G, int from) {
+    std::vector<std::vector<int>> E;
+    E.resize(N, std::vector<int>());
+    std::vector<int> dis(N, INF);
+    std::vector<int> inDeg(N, 0);
+    std::queue<int> Q;
+    Q.push(from);
+    dis[from] = 0;
+    while (!Q.empty()) {
+        int u = Q.front(); Q.pop();
+        for (auto edge : G.adj[u]) {
+            int v = edge.to;
+            if (dis[v] > dis[u] + 1) {
+                E[u].emplace_back(v);
+                ++inDeg[v];
+                dis[v] = dis[u] + 1;
+                Q.push(v);
+            } else if (dis[v] == dis[u] + 1) {
+                E[u].emplace_back(v);
+                ++inDeg[v];
+            }
+        }
+    }
+
+    std::vector<i64> dp(N);
+    while (!Q.empty()) Q.pop();
+    Q.push(from);
+    dp[from] = 1;
+    while (!Q.empty()) {
+        int u = Q.front(); Q.pop();
+        for (auto v : E[u]) {
+            dp[v] = std::min(dp[v] + dp[u], H);
+            --inDeg[v];
+            if (!inDeg[v]) {
+                Q.push(v);
+            }
+        }
+    }
+    return std::make_pair(dis, dp);
+}
+
+// for something need to be initiate, put them here.
+void init(Graph &G) {
+}
+
 int main() {
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
@@ -396,11 +445,20 @@ int main() {
         G.addEdge(_u, _v, _d);
     }
 
+    nodeValue.resize(N);
     for (int i = 0; i < T; i++) {
         int _from, _to;
         std::cin >> _from >> _to;
         auto _dis = solveTaskDistance(G, _from, _to);
         taskList.push_back({i, _from, _to, _dis});
+        auto [dis, dp] = getDownToNodes(G, taskList[i].from);
+        auto [rDis, rDp] = getDownToNodes(G, taskList[i].to);
+        int totalDis = dis[_to];
+        for (int j = 0; j < N; ++j) {
+            if (dis[j] + rDis[j] == totalDis) {
+                nodeValue[i] += dp[j] * rDp[j];
+            }
+        }
     }
 
     std::srand(SEED);
