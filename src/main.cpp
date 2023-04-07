@@ -46,15 +46,18 @@ struct Edge {
 
 struct Graph {
     std::vector<std::vector<Edge>> adj;
-    std::vector<std::vector<int>> mat;
+    std::vector<std::unordered_map<int, int>> mat;
     std::vector<std::pair<Edge, std::pair<int, int>>>
         edgeSet;  // 第二个pair表示u,v(u<v) {u的位置，v的位置}
     int P;
     int cnt = 0;
-    Graph(int n, int P) : adj(n), P(P), mat(n, std::vector<int>(n, INF)){};
+    Graph(int n, int P) : adj(n), P(P), mat(n){};
     inline void addEdge(int from, int to, int d) {
         adj[from].emplace_back(from, to, d, P, cnt);
         adj[to].emplace_back(to, from, d, P, cnt);
+
+        if (mat[from].find(to) == mat[from].end()) mat[from].insert({to, INF});
+        if (mat[to].find(from) == mat[to].end()) mat[to].insert({from, INF});
 
         mat[from][to] = mat[to][from] = std::min(mat[from][to], d);
 
@@ -89,7 +92,6 @@ P: 信道上限
 D: 衰减上限
 */
 int N, M, T, P, D;
-std::vector<Task> taskList;
 
 int solveTaskDistance(const Graph& G, int from, int to) {
     std::vector<int> dis(N, -1);
@@ -338,14 +340,23 @@ void solveSingleTask(Graph& G, Task& task) {
     return;
 }
 
-void solveAllTask(Graph& G) {
+void solveAllTask(Graph& G, std::vector<Task>& taskList) {
     for (int i = 0; i < T; i++) {
         solveSingleTask(G, taskList[i]);
     }
     return;
 }
 
-void outputAnswer(const Graph& G) {
+i64 solveScoreTask(const Graph& G, const std::vector<Task>& taskList) {
+    i64 ret = 0;
+    ret += 1LL * (G.cnt - M) * 1E6;
+    for (const auto& p : taskList) {
+        ret += 1LL * p.pathEdge.size() * 1;
+        ret += 100LL * p.station.size();
+    }
+    return ret;
+}
+void outputAnswer(const Graph& G, std::vector<Task>& taskList) {
     std::cout << G.cnt - M << "\n";
 
     std::vector<std::tuple<int, int, int>> edgeList;
@@ -396,6 +407,7 @@ int main() {
         G.addEdge(_u, _v, _d);
     }
 
+    std::vector<Task> taskList;
     for (int i = 0; i < T; i++) {
         int _from, _to;
         std::cin >> _from >> _to;
@@ -403,15 +415,38 @@ int main() {
         taskList.push_back({i, _from, _to, _dis});
     }
 
-    std::srand(SEED);
-    std::random_shuffle(begin(taskList), end(taskList));
+    std::vector<Graph> GList(1000, G);
+    std::vector<std::vector<Task>> listTaskList(100, taskList);
+    std::vector<unsigned int> seedList;
+    for (int i = 1; i <= 100; i++) {
+        seedList.push_back(i);
+    }
 
-    std::sort(begin(taskList), end(taskList), [&](auto cmpA, auto cmpB) {
-        return cmpA.shortestPathLen > cmpB.shortestPathLen;
-    });
+    int bestSeed = 0, bestScore = INF;
 
-    solveAllTask(G);
-    outputAnswer(G);
+    for (int i = 0; i < 100; i++) {
+        std::srand(seedList[i]);
+        std::random_shuffle(begin(listTaskList[i]), end(listTaskList[i]));
+
+        std::sort(begin(taskList), end(taskList), [&](auto cmpA, auto cmpB) {
+            return cmpA.shortestPathLen > cmpB.shortestPathLen;
+        });
+
+        solveAllTask(GList[i], listTaskList[i]);
+
+        auto curScore = solveScoreTask(GList[i], listTaskList[i]);
+        std::cerr << i << " " << curScore << std::endl;
+        if (curScore < bestScore) {
+            bestScore = curScore;
+            bestSeed = i;
+        }
+        unsigned int singleRunTime = (timer.elapsed() + i) / (i + 1);
+
+        if (timer.elapsed() + singleRunTime >= 1000 * 110) break;
+    }
+
+    std::cerr << bestScore << std::endl;
+    outputAnswer(GList[bestSeed], listTaskList[bestSeed]);
 
     // std::cerr << timer.elapsed() << "ms" << std::endl;
 
