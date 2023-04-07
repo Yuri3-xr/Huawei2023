@@ -244,8 +244,9 @@ void solveSingleTask(Graph& G, Task& task) {
 
         int curNode = task.to;
         std::vector<int> resPathEdge, resPathNode, resDis;
-        int minChannel = INF;
+        int minChannel = INF;  // ？？
         int sumDistance = 0;
+        int cntEdge = 0;
         while (curNode != -1) {
             resPathNode.push_back(curNode);
             auto [prevNode, prevEdge] = curLast[curNode];
@@ -253,11 +254,13 @@ void solveSingleTask(Graph& G, Task& task) {
             if (prevEdge != -1) {
                 resPathEdge.push_back(prevEdge);
                 resDis.push_back(G.edgeSet[prevEdge].first.distance);
-                minChannel =
-                    std::min(minChannel, G.edgeSet[prevEdge].first.cntChannel);
+                minChannel +=
+                    (minChannel, G.edgeSet[prevEdge].first.cntChannel);
                 sumDistance += G.edgeSet[prevEdge].first.distance;
+                cntEdge++;
             }
         }
+        minChannel = (minChannel + cntEdge + 1) / cntEdge;
         std::reverse(begin(resPathEdge), end(resPathEdge));
         std::reverse(begin(resPathNode), end(resPathNode));
         std::reverse(begin(resDis), end(resDis));
@@ -276,7 +279,9 @@ void solveSingleTask(Graph& G, Task& task) {
     if (task.pathNode.empty()) {
         auto [addPathNode, addPathEdge] = newBfs(G, task.from, task.to);
 
-        int trueChannel = bestChannel(G, task, addPathNode, addPathEdge);
+        int trueChannel = bestChannel(
+            G, task, addPathNode,
+            addPathEdge);  // this variable's name should be modified.
 
         auto curLast = singleChannelBfs(G, task.from, task.to, trueChannel);
 
@@ -415,22 +420,28 @@ int main() {
         taskList.push_back({i, _from, _to, _dis});
     }
 
-    std::vector<Graph> GList(1000, G);
-    std::vector<std::vector<Task>> listTaskList(100, taskList);
+    constexpr int timeIWantToTry = 30;
+    std::vector<Graph> GList(timeIWantToTry, G);
+    std::vector<std::vector<Task>> listTaskList(timeIWantToTry, taskList);
     std::vector<unsigned int> seedList;
-    for (int i = 1; i <= 100; i++) {
+    for (int i = 1; i <= timeIWantToTry; i++) {
         seedList.push_back(i);
     }
 
     int bestSeed = 0, bestScore = INF;
 
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < timeIWantToTry; i++) {
         std::srand(seedList[i]);
+        // std::random_shuffle(begin(listTaskList[i]), end(listTaskList[i]));
         std::random_shuffle(begin(listTaskList[i]), end(listTaskList[i]));
+        for (auto& p : listTaskList[i]) {
+            p.shortestPathLen += rand() % 4;
+        }
 
-        std::sort(begin(taskList), end(taskList), [&](auto cmpA, auto cmpB) {
-            return cmpA.shortestPathLen > cmpB.shortestPathLen;
-        });
+        std::sort(begin(listTaskList[i]), end(listTaskList[i]),
+                  [&](auto cmpA, auto cmpB) {
+                      return cmpA.shortestPathLen > cmpB.shortestPathLen;
+                  });
 
         solveAllTask(GList[i], listTaskList[i]);
 
@@ -445,7 +456,7 @@ int main() {
         if (timer.elapsed() + singleRunTime >= 1000 * 110) break;
     }
 
-    std::cerr << bestScore << std::endl;
+    // std::cerr << bestScore << std::endl;
     outputAnswer(GList[bestSeed], listTaskList[bestSeed]);
 
     // std::cerr << timer.elapsed() << "ms" << std::endl;
