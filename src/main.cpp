@@ -119,7 +119,8 @@ struct BFSNode {
                std::make_pair(opB.cntChannel, opB.distance);
     }
 };
-std::pair<std::vector<int>, std::vector<int>> newBfs(const Graph& G, int from, int to) {
+std::pair<std::vector<int>, std::vector<int>> newBfs(const Graph& G, int from,
+                                                     int to) {
     // 若该两点不连通，则需要bfs出一条最短路，然后把这条最短路上的边重新加入一遍
     // 启发式去做bfs，因为这些边需要被加，所以每次拓展时，按照当前的剩余信道数排序拓展
     // 返回新加的边的点序列
@@ -205,7 +206,8 @@ std::vector<std::pair<int, int>> singleChannelBfs(const Graph& G, int from,
     return last;
 }
 
-int bestChannel(Graph &G, Task &task, std::vector<int> &pathNode, std::vector<int> &pathEdge) {
+int bestChannel(Graph& G, Task& task, std::vector<int>& pathNode,
+                std::vector<int>& pathEdge) {
     int bestChannel = -1, bestCnt = -1;
     for (int p = 0; p < P; ++p) {
         int cnt = 0;
@@ -227,8 +229,7 @@ int bestChannel(Graph &G, Task &task, std::vector<int> &pathNode, std::vector<in
         int u = pathNode[i], v = pathNode[i + 1];
         auto edge = G.edgeSet[pathEdge[i]].first;
         if (edge.markChannel[bestChannel] != -1) {
-            G.addEdge(u, v,
-                      G.mat[u][v]);
+            G.addEdge(u, v, G.mat[u][v]);
         }
     }
     return bestChannel;
@@ -271,10 +272,11 @@ void solveSingleTask(Graph& G, Task& task) {
     }
 
     if (task.pathNode.empty()) {
-        
         auto [addPathNode, addPathEdge] = newBfs(G, task.from, task.to);
 
-        int trueChannel = bestChannel(G, task, addPathNode, addPathEdge); // this variable's name should be modified.
+        int trueChannel = bestChannel(
+            G, task, addPathNode,
+            addPathEdge);  // this variable's name should be modified.
 
         auto curLast = singleChannelBfs(G, task.from, task.to, trueChannel);
 
