@@ -2,14 +2,14 @@ import sys
 import random
 
 SETN = 500
-SETM = 500
+SETM = 5000
 SETT = 1000
-SETP = 80
+SETP = 10
 SETD = 1000
 
 N = random.randint(5, SETN)
-M = random.randint(N - 1, N * 2)
-T = random.randint(2, SETT)
+M = random.randint(N - 1, N)
+T = random.randint(500, SETT)
 P = random.randint(2, SETP)
 D = random.randint(2, SETD)
 
