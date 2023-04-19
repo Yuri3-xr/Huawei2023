@@ -3,9 +3,9 @@
 using i64 = std::int64_t;
 
 constexpr int INF = std::numeric_limits<int>::max() / 2.0;
-constexpr uint32_t SEED = 120;
+constexpr uint32_t SEED = 229;
 
-constexpr int EDGE_WEIGHT = 1;
+constexpr int EDGE_WEIGHT = 8;
 constexpr int ADDED_EDGE_WEIGHT = 1e6;
 
 std::mt19937 seed(SEED);
@@ -97,7 +97,7 @@ D: 衰减上限
 */
 int N, M, T, P, D;
 
-//==================================================== 
+//====================================================
 
 int solveTaskDistance(const Graph& G, int from, int to) {
     std::vector<int> dis(N, -1);
@@ -186,11 +186,13 @@ inline int cost(int x) {
     }
 }
 
-std::vector<std::pair<int, int>> singleChannelDijkstra(const Graph &G, int from, int to, int p, int &toDis) {
+std::vector<std::pair<int, int>> singleChannelDijkstra(const Graph& G, int from,
+                                                       int to, int p,
+                                                       int& toDis) {
     std::vector<int> vis(N, 0);
     std::vector<std::pair<int, int>> last(N, {-1, -1});
     std::vector<int> dis(N, INF);
-    
+
     dis[from] = 0;
     std::priority_queue<std::pair<int, int>> Q;
     Q.push(std::make_pair(-dis[from], from));
@@ -199,16 +201,16 @@ std::vector<std::pair<int, int>> singleChannelDijkstra(const Graph &G, int from,
         auto [negDis, u] = Q.top();
         Q.pop();
         dis[u] = -negDis;
-        
+
         if (vis[u]) continue;
         vis[u] = true;
 
         if (u == to) break;
 
-        for (const auto &edge : G.adj[u]) {
+        for (const auto& edge : G.adj[u]) {
             int v = edge.to;
             if (vis[v]) continue;
-            if (edge.cntChannel >= P && edge.id >= M) continue; // deleted
+            if (edge.cntChannel >= P && edge.id >= M) continue;  // deleted
             int nxtDis = dis[u], lastEdgeId = -1;
             if (edge.markChannel[p] == -1) {
                 nxtDis += EDGE_WEIGHT + cost(P - edge.cntChannel);
@@ -229,11 +231,12 @@ std::vector<std::pair<int, int>> singleChannelDijkstra(const Graph &G, int from,
     return last;
 }
 
-void solveSingleTask(Graph &G, Task &task) {
+void solveSingleTask(Graph& G, Task& task) {
     int toDis = INF, bestChannel = -1;
     for (int p = 0; p < P; ++p) {
         int nowToDis = INF;
-        auto curLast = singleChannelDijkstra(G, task.from, task.to, p, nowToDis);
+        auto curLast =
+            singleChannelDijkstra(G, task.from, task.to, p, nowToDis);
         if (nowToDis < toDis) {
             toDis = nowToDis;
             bestChannel = p;
@@ -241,7 +244,8 @@ void solveSingleTask(Graph &G, Task &task) {
     }
 
     assert(toDis < INF);
-    auto curLast = singleChannelDijkstra(G, task.from, task.to, bestChannel, toDis);
+    auto curLast =
+        singleChannelDijkstra(G, task.from, task.to, bestChannel, toDis);
     int curNode = task.to;
     std::vector<int> resPathEdge, resPathNode, resDis;
     int minChannel = 0;
@@ -260,8 +264,7 @@ void solveSingleTask(Graph &G, Task &task) {
         curNode = prevNode;
         resPathEdge.push_back(prevEdge);
         resDis.push_back(G.edgeSet[prevEdge].first.distance);
-        minChannel =
-            std::min(minChannel, G.edgeSet[prevEdge].first.cntChannel);
+        minChannel = std::min(minChannel, G.edgeSet[prevEdge].first.cntChannel);
         // sumDistance += G.edgeSet[prevEdge].first.cntChannel;
     }
 
@@ -304,13 +307,14 @@ void solveSingleTask(Graph &G, Task &task) {
     }
 }
 
-void fix(Graph &G, Task &task) {
+void fix(Graph& G, Task& task) {
     if (!task.addEdgeFlag) return;
 
     int toDis = INF, bestChannel = -1;
     for (int p = 0; p < P; ++p) {
         int nowToDis = INF;
-        auto curLast = singleChannelDijkstra(G, task.from, task.to, p, nowToDis);
+        auto curLast =
+            singleChannelDijkstra(G, task.from, task.to, p, nowToDis);
         if (nowToDis < toDis) {
             toDis = nowToDis;
             bestChannel = p;
@@ -352,13 +356,14 @@ void solveAllTask(Graph& G, std::vector<Task>& taskList) {
         solveSingleTask(G, taskList[i]);
     }
 
-// #ifdef dijkstra
-    for (int j = 0; j < 3; ++j) {
-        for (int i = 0; i < T; ++i) {
+    // #ifdef dijkstra
+    for (int j = 0; j < 10; ++j) {
+        for (int i = T - 1; i >= 0; --i) {
             fix(G, taskList[i]);
         }
+        std::random_shuffle(begin(taskList), end(taskList));
     }
-// #endif
+    // #endif
     return;
 }
 
@@ -384,7 +389,9 @@ i64 solveScoreTask(const Graph& G, const std::vector<Task>& taskList) {
 
 int cnt[100000];
 void outputAnswer(const Graph& G, std::vector<Task>& taskList) {
-    // std::cout << G.cnt - M << "\n";
+    for (int i = 0; i < 100000; i++) {
+        cnt[i] = 0;
+    }
 
     std::vector<std::tuple<int, int, int>> edgeList;
     for (int from = 0; from < N; ++from) {
