@@ -8,10 +8,15 @@ SETP = 10
 SETD = 1000
 
 N = random.randint(5, SETN)
-M = random.randint(N - 1, N)
+M = random.randint(N - 1, N * 30)
 T = random.randint(500, SETT)
 P = random.randint(2, SETP)
 D = random.randint(2, SETD)
+
+N = 2500
+M = 5000
+P = 80
+T = 10000
 
 fa = [i for i in range(N)]
 edge_list = []
