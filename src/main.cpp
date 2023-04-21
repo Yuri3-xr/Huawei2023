@@ -776,23 +776,23 @@ int main() {
                   });
 
         if (i) {
-            std::sort(begin(listTaskList[bestSeed]),
-                      end(listTaskList[bestSeed]), [&](auto A, auto B) {
+            std::sort(begin(listTaskList[i - 1]), end(listTaskList[i - 1]),
+                      [&](auto A, auto B) {
                           if (A.addEdge > B.addEdge) return true;
                           if (A.addEdge < B.addEdge) return false;
                           return A.shortestPathLen > B.shortestPathLen;
                       });
 
             for (int j = 0; j < T; ++j) {
-                listTaskList[i][j].dis = listTaskList[bestSeed][j].dis;
-                listTaskList[i][j].from = listTaskList[bestSeed][j].from;
-                listTaskList[i][j].to = listTaskList[bestSeed][j].to;
-                listTaskList[i][j].id = listTaskList[bestSeed][j].id;
+                listTaskList[i][j].dis = listTaskList[i - 1][j].dis;
+                listTaskList[i][j].from = listTaskList[i - 1][j].from;
+                listTaskList[i][j].to = listTaskList[i - 1][j].to;
+                listTaskList[i][j].id = listTaskList[i - 1][j].id;
             }
         }
 
         if (N <= 1000) {
-            if ((i % 4) == 1) {
+            if ((i % 5) == 1) {
                 init(GList[i], listTaskList[i], GList[bestSeed]);
             }
         } else if (1.0 * (M - N) / N <= 0.25) {
