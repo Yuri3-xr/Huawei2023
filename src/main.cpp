@@ -101,9 +101,9 @@ D: 衰减上限
 int N, M, T, P, D;
 int cnt[100000];
 
-//==================================================== 
+//====================================================
 
-int solveTaskDistance(const Graph& G, int from, int to) {
+int solveTaskDistance(const Graph &G, int from, int to) {
     std::vector<int> dis(N, -1);
 
     std::queue<int> Q;
@@ -113,7 +113,7 @@ int solveTaskDistance(const Graph& G, int from, int to) {
     while (!Q.empty()) {
         auto curNode = Q.front();
         Q.pop();
-        for (const auto& edge : G.adj[curNode]) {
+        for (const auto &edge : G.adj[curNode]) {
             if (dis[edge.to] == -1) {
                 dis[edge.to] = dis[curNode] + 1;
                 Q.push(edge.to);
@@ -126,12 +126,12 @@ int solveTaskDistance(const Graph& G, int from, int to) {
 
 struct BFSNode {
     int cntChannel, distance, nextNode;
-    friend bool operator<(const BFSNode& opA, const BFSNode& opB) {
+    friend bool operator<(const BFSNode &opA, const BFSNode &opB) {
         return std::make_pair(opA.cntChannel, opA.distance) <
                std::make_pair(opB.cntChannel, opB.distance);
     }
 };
-std::pair<std::vector<int>, std::vector<int>> newBfs(const Graph& G, int from,
+std::pair<std::vector<int>, std::vector<int>> newBfs(const Graph &G, int from,
                                                      int to) {
     // 若该两点不连通，则需要bfs出一条最短路，然后把这条最短路上的边重新加入一遍
     // 启发式去做bfs，因为这些边需要被加，所以每次拓展时，按照当前的剩余信道数排序拓展
@@ -148,7 +148,7 @@ std::pair<std::vector<int>, std::vector<int>> newBfs(const Graph& G, int from,
         Q.pop();
         if (curNode == to) break;
         std::vector<BFSNode> nextNodeList;
-        for (const auto& edge : G.adj[curNode]) {
+        for (const auto &edge : G.adj[curNode]) {
             if (!vis[edge.to]) {
                 nextNodeList.push_back(
                     {edge.cntChannel, edge.distance, edge.to});
@@ -158,7 +158,7 @@ std::pair<std::vector<int>, std::vector<int>> newBfs(const Graph& G, int from,
         }
         // 启发式，剩余信道少的边先拓展
         std::sort(begin(nextNodeList), end(nextNodeList));
-        for (const auto& [cnt, nextDeg, node] : nextNodeList) {
+        for (const auto &[cnt, nextDeg, node] : nextNodeList) {
             Q.push(node);
             vis[node] = 1;
         }
@@ -190,11 +190,14 @@ inline int cost(int x) {
     }
 }
 
-std::vector<std::pair<int, int>> singleChannelDijkstra(const Graph &G, int from, int to, int p, int &toDis, bool fixFlag = false) {
+std::vector<std::pair<int, int>> singleChannelDijkstra(const Graph &G, int from,
+                                                       int to, int p,
+                                                       int &toDis,
+                                                       bool fixFlag = false) {
     std::vector<int> vis(N, 0);
     std::vector<std::pair<int, int>> last(N, {-1, -1});
     std::vector<int> dis(N, INF);
-    
+
     dis[from] = 0;
     std::priority_queue<std::pair<int, int>> Q;
     Q.push(std::make_pair(-dis[from], from));
@@ -203,7 +206,7 @@ std::vector<std::pair<int, int>> singleChannelDijkstra(const Graph &G, int from,
         auto [negDis, u] = Q.top();
         Q.pop();
         dis[u] = -negDis;
-        
+
         if (vis[u]) continue;
         vis[u] = true;
 
@@ -213,9 +216,10 @@ std::vector<std::pair<int, int>> singleChannelDijkstra(const Graph &G, int from,
             int v = edge.to;
             if (vis[v]) continue;
             int nxtDis = dis[u], lastEdgeId = -1;
-            if (edge.deleted) continue; // has been removed.
+            if (edge.deleted) continue;  // has been removed.
             if (fixFlag) {
-                if (edge.markChannel[p] != -1) continue; // this channel has been used.
+                if (edge.markChannel[p] != -1)
+                    continue;  // this channel has been used.
             }
             if (edge.markChannel[p] == -1) {
                 nxtDis += cost(P - edge.cntChannel);
@@ -241,7 +245,9 @@ std::vector<std::pair<int, int>> singleChannelDijkstra(const Graph &G, int from,
     return last;
 }
 
-void completeTask(Graph &G, Task &task, std::vector<std::pair<int, int>> &curLast, int toDis, int bestChannel) {
+void completeTask(Graph &G, Task &task,
+                  std::vector<std::pair<int, int>> &curLast, int toDis,
+                  int bestChannel) {
     int curNode = task.to;
     std::vector<int> resPathEdge, resPathNode, resDis;
     int minChannel = 0;
@@ -261,8 +267,7 @@ void completeTask(Graph &G, Task &task, std::vector<std::pair<int, int>> &curLas
         curNode = prevNode;
         resPathEdge.push_back(prevEdge);
         resDis.push_back(G.edgeSet[prevEdge].first.distance);
-        minChannel =
-            std::min(minChannel, G.edgeSet[prevEdge].first.cntChannel);
+        minChannel = std::min(minChannel, G.edgeSet[prevEdge].first.cntChannel);
         // sumDistance += G.edgeSet[prevEdge].first.cntChannel;
     }
 
@@ -309,45 +314,49 @@ void solveSingleTask(Graph &G, Task &task) {
     int toDis = INF, bestChannel = -1;
     for (int p = 0; p < P; ++p) {
         int nowToDis = INF;
-        auto curLast = singleChannelDijkstra(G, task.from, task.to, p, nowToDis);
+        auto curLast =
+            singleChannelDijkstra(G, task.from, task.to, p, nowToDis);
         if (nowToDis < toDis) {
             toDis = nowToDis;
             bestChannel = p;
         }
     }
 
-    auto curLast = singleChannelDijkstra(G, task.from, task.to, bestChannel, toDis);
+    auto curLast =
+        singleChannelDijkstra(G, task.from, task.to, bestChannel, toDis);
 
     completeTask(G, task, curLast, toDis, bestChannel);
 }
 
 //=========== fix begin
 
-void deleteEdgeToFix(Graph &G, std::vector<Task> &taskList, std::vector<int> &taskIndex, int edgeId) {
+void deleteEdgeToFix(Graph &G, std::vector<Task> &taskList,
+                     std::vector<int> &taskIndex, int edgeId) {
     std::vector<int> taskToFix;
-    
+
     // for (auto edgeId : edgeList) {
-        G.edgeSet[edgeId].first.deleted = true;
-        int u = G.edgeSet[edgeId].first.from;
-        int v = G.edgeSet[edgeId].first.to;
-        if (u > v) std::swap(u, v);
+    G.edgeSet[edgeId].first.deleted = true;
+    int u = G.edgeSet[edgeId].first.from;
+    int v = G.edgeSet[edgeId].first.to;
+    if (u > v) std::swap(u, v);
 
-        int uId = G.edgeSet[edgeId].second.first;
-        int vId = G.edgeSet[edgeId].second.second;
+    int uId = G.edgeSet[edgeId].second.first;
+    int vId = G.edgeSet[edgeId].second.second;
 
-        G.adj[u][uId].deleted = true;
-        G.adj[v][vId].deleted = true;
-        
-        auto &edge = G.edgeSet[edgeId].first;
-        for (int p = 0; p < P; ++p) {
-            if (edge.markChannel[p] != -1) {
-                taskToFix.emplace_back(taskIndex[edge.markChannel[p]]);
-                // std::cerr << edge.markChannel[p] << std::endl;
-            }
+    G.adj[u][uId].deleted = true;
+    G.adj[v][vId].deleted = true;
+
+    auto &edge = G.edgeSet[edgeId].first;
+    for (int p = 0; p < P; ++p) {
+        if (edge.markChannel[p] != -1) {
+            taskToFix.emplace_back(taskIndex[edge.markChannel[p]]);
+            // std::cerr << edge.markChannel[p] << std::endl;
         }
+    }
     // }
 
-    taskToFix.resize(std::unique(taskToFix.begin(), taskToFix.end()) - taskToFix.begin());
+    taskToFix.resize(std::unique(taskToFix.begin(), taskToFix.end()) -
+                     taskToFix.begin());
     // for (auto taskId : taskToFix) {
     //     std::cerr << taskId << " ";
     // }
@@ -361,19 +370,20 @@ void deleteEdgeToFix(Graph &G, std::vector<Task> &taskList, std::vector<int> &ta
         for (int p = 0; p < P; ++p) {
             if (channelUsed[p]) continue;
             int nowToDis = INF;
-            auto curLast = singleChannelDijkstra(G, task.from, task.to, p, nowToDis, true);
+            auto curLast =
+                singleChannelDijkstra(G, task.from, task.to, p, nowToDis, true);
             // std::cerr << nowToDis << std::endl;
             if ((curLast.size()) && (nowToDis < toDis)) {
                 toDis = nowToDis;
                 bestChannel = p;
             }
         }
-        
+
         if (bestChannel == -1) {
             // fix failed.
             flag = false;
             break;
-        }   
+        }
 
         channelUsed[bestChannel] = taskId;
     }
@@ -385,10 +395,11 @@ void deleteEdgeToFix(Graph &G, std::vector<Task> &taskList, std::vector<int> &ta
             if (channelUsed[p]) {
                 auto &task = taskList[channelUsed[p]];
                 int toDis = INF;
-                auto curLast = singleChannelDijkstra(G, task.from, task.to, p, toDis, true);
+                auto curLast = singleChannelDijkstra(G, task.from, task.to, p,
+                                                     toDis, true);
 
                 int curNode = task.to;
-                
+
                 task.station.clear();
                 completeTask(G, task, curLast, toDis, p);
             }
@@ -401,8 +412,8 @@ void deleteEdgeToFix(Graph &G, std::vector<Task> &taskList, std::vector<int> &ta
         //         if (channelUsed[p]) {
         //             auto &task = taskList[channelUsed[p]];
         //             int toDis = INF;
-        //             auto curLast = singleChannelDijkstra(G, task.from, task.to, p, toDis, true);
-        //             int curNode = task.to;
+        //             auto curLast = singleChannelDijkstra(G, task.from,
+        //             task.to, p, toDis, true); int curNode = task.to;
         //             completeTask(G, task, curLast, toDis, p);
         //         }
         //     }
@@ -411,22 +422,22 @@ void deleteEdgeToFix(Graph &G, std::vector<Task> &taskList, std::vector<int> &ta
     }
 
     // for (auto edgeId : edgeList) {
-        G.edgeSet[edgeId].first.deleted = false;
+    G.edgeSet[edgeId].first.deleted = false;
 
-        // int u = G.edgeSet[edgeId].first.from;
-        // int v = G.edgeSet[edgeId].first.to;
-        // if (u > v) std::swap(u, v);
+    // int u = G.edgeSet[edgeId].first.from;
+    // int v = G.edgeSet[edgeId].first.to;
+    // if (u > v) std::swap(u, v);
 
-        // int uId = G.edgeSet[edgeId].second.first;
-        // int vId = G.edgeSet[edgeId].second.second;
-        G.adj[u][uId].deleted = false;
-        G.adj[v][vId].deleted = false;
+    // int uId = G.edgeSet[edgeId].second.first;
+    // int vId = G.edgeSet[edgeId].second.second;
+    G.adj[u][uId].deleted = false;
+    G.adj[v][vId].deleted = false;
     // }
 }
 
 //=========== fix end
 
-void solveAllTask(Graph& G, std::vector<Task>& taskList) {
+void solveAllTask(Graph &G, std::vector<Task> &taskList) {
     for (int i = 0; i < T; i++) {
         solveSingleTask(G, taskList[i]);
     }
@@ -454,7 +465,7 @@ void solveAllTask(Graph& G, std::vector<Task>& taskList) {
     // }
 }
 
-i64 solveScoreTask(const Graph& G, const std::vector<Task>& taskList) {
+i64 solveScoreTask(const Graph &G, const std::vector<Task> &taskList) {
     i64 ret = 0;
     std::vector<std::tuple<int, int, int>> edgeList;
     for (int from = 0; from < N; ++from) {
@@ -467,14 +478,14 @@ i64 solveScoreTask(const Graph& G, const std::vector<Task>& taskList) {
         }
     }
     ret += 1LL * edgeList.size() * 1E6;
-    for (const auto& p : taskList) {
+    for (const auto &p : taskList) {
         ret += 1LL * p.pathEdge.size() * 1;
         ret += 100LL * p.station.size();
     }
     return ret;
 }
 
-void outputAnswer(const Graph& G, std::vector<Task>& taskList) {
+void outputAnswer(const Graph &G, std::vector<Task> &taskList) {
     // std::cout << G.cnt - M << "\n";
 
     std::vector<std::tuple<int, int, int>> edgeList;
@@ -531,7 +542,8 @@ void init(Graph &G, std::vector<Task> &taskList, Graph &lastG, int t = 0) {
         memset(cnt, 0, sizeof cnt);
         for (auto task : taskList) {
             int toDis = INF;
-            auto curLast = singleChannelDijkstra(G, task.from, task.to, 0, toDis, true);
+            auto curLast =
+                singleChannelDijkstra(G, task.from, task.to, 0, toDis, true);
             int curNode = task.to;
 
             while (curNode != -1) {
@@ -558,7 +570,6 @@ void init(Graph &G, std::vector<Task> &taskList, Graph &lastG, int t = 0) {
 
                 G.adj[u][uId].preAdd = true;
                 G.adj[v][vId].preAdd = true;
-
             }
         }
         return;
@@ -572,11 +583,8 @@ void init(Graph &G, std::vector<Task> &taskList, Graph &lastG, int t = 0) {
         edgeList.emplace_back(lastG.edgeSet[i].first);
     }
 
-    std::sort(edgeList.begin(), edgeList.end(), 
-        [&](auto A, auto B) {
-            return A.cntChannel < B.cntChannel;    
-        }
-        );
+    std::sort(edgeList.begin(), edgeList.end(),
+              [&](auto A, auto B) { return A.cntChannel < B.cntChannel; });
 
     // std::cerr << edgeList.size() << std::endl;
     double rate = 0.5;
@@ -584,7 +592,7 @@ void init(Graph &G, std::vector<Task> &taskList, Graph &lastG, int t = 0) {
         int u = edgeList[i].from;
         int v = edgeList[i].to;
         if (u > v) std::swap(u, v);
-        
+
         G.addEdge(u, v, G.mat[u][v]);
         int nowEdgeId = G.cnt - 1;
         G.edgeSet[nowEdgeId].first.preAdd = true;
@@ -610,31 +618,31 @@ void tarjan(const Graph &G, int u, int fa) {
     st.push(u);
     // for (int i = head[u]; i; i = e[i].next) {
     for (auto edge : G.adj[u]) {
-	    int v = edge.to;
-    	if (v == fa && flag) {
-	        flag = false;
-	        continue;
+        int v = edge.to;
+        if (v == fa && flag) {
+            flag = false;
+            continue;
         }
         if (!dfn[v]) {
             tarjan(G, v, u);
             low[u] = std::min(low[u], low[v]);
             if (low[v] > dfn[u]) {
                 bridge[edge.id] = 1;
-	        }
-	    } else if (dfn[v] < dfn[u]) {
-	        low[u] = std::min(low[u], dfn[v]);
-    	}
+            }
+        } else if (dfn[v] < dfn[u]) {
+            low[u] = std::min(low[u], dfn[v]);
+        }
     }
     if (dfn[u] == low[u]) {
         num++;
         int tmp;
-        do{
+        do {
             tmp = st.top();
             belong[tmp] = num;
             st.pop();
-        } while(tmp != u);
+        } while (tmp != u);
     }
-} 
+}
 
 std::vector<int> E[MAX_N];
 int siz[MAX_N], dep[MAX_N], son[MAX_N], top[MAX_N], fa[MAX_N];
@@ -665,11 +673,11 @@ void dfs2(int u, int tp) {
 }
 
 int lca(int u, int v) {
-	while (top[u] != top[v]) {
-		if (dep[top[u]] > dep[top[v]]) std::swap(u, v);
-		v = fa[top[v]];
-	}
-	return dep[u] < dep[v] ? u : v;
+    while (top[u] != top[v]) {
+        if (dep[top[u]] > dep[top[v]]) std::swap(u, v);
+        v = fa[top[v]];
+    }
+    return dep[u] < dep[v] ? u : v;
 }
 
 std::vector<int> bccWeight(const Graph &G, std::vector<Task> &taskList) {
@@ -706,7 +714,6 @@ std::vector<int> bccWeight(const Graph &G, std::vector<Task> &taskList) {
     return dis;
 }
 
-
 //===================
 
 int main() {
@@ -715,6 +722,7 @@ int main() {
     Timer timer;
     timer.reset();
     std::cin >> N >> M >> T >> P >> D;
+
     Graph G(N, P);
     for (int i = 0; i < M; i++) {
         int _u, _v, _d;
@@ -731,10 +739,16 @@ int main() {
     }
 
     int timeIWantToTry = 30;
-    if (N <= 500) timeIWantToTry = 100;
-    else if (N <= 1000) timeIWantToTry = 100;
-    else if (N <= 2000) timeIWantToTry = 100;
-    else timeIWantToTry = 30;
+    if (N <= 500)
+        timeIWantToTry = 100;
+    else if (N <= 1000)
+        timeIWantToTry = 100;
+    else if (N <= 2000)
+        timeIWantToTry = 100;
+    else
+        timeIWantToTry = 30;
+
+    if (N <= 100) timeIWantToTry = 200;
     std::vector<Graph> GList(timeIWantToTry, G);
     std::vector<std::vector<Task>> listTaskList(timeIWantToTry, taskList);
     std::vector<unsigned int> seedList;
@@ -750,26 +764,25 @@ int main() {
         std::srand(seedList[i]);
         std::random_shuffle(begin(listTaskList[i]), end(listTaskList[i]));
         std::random_shuffle(begin(listTaskList[i]), end(listTaskList[i]));
-        for (auto& p : listTaskList[i]) {
+        for (auto &p : listTaskList[i]) {
             p.shortestPathLen += rand() % 4;
         }
-        
+
         std::sort(begin(listTaskList[i]), end(listTaskList[i]),
                   [&](auto cmpA, auto cmpB) {
-                        // if (bccDis[cmpA.id] > bccDis[cmpB.id]) return true;
-                        // if (bccDis[cmpA.id] < bccDis[cmpB.id]) return false;
-                        return cmpA.shortestPathLen > cmpB.shortestPathLen;
+                      // if (bccDis[cmpA.id] > bccDis[cmpB.id]) return true;
+                      // if (bccDis[cmpA.id] < bccDis[cmpB.id]) return false;
+                      return cmpA.shortestPathLen > cmpB.shortestPathLen;
                   });
-        
+
         if (i) {
-            
-            std::sort(begin(listTaskList[bestSeed]), end(listTaskList[bestSeed]), 
-                [&](auto A, auto B) {
-                    if (A.addEdge > B.addEdge) return true;
-                    if (A.addEdge < B.addEdge) return false;
-                    return A.shortestPathLen > B.shortestPathLen;
-                });
-            
+            std::sort(begin(listTaskList[bestSeed]),
+                      end(listTaskList[bestSeed]), [&](auto A, auto B) {
+                          if (A.addEdge > B.addEdge) return true;
+                          if (A.addEdge < B.addEdge) return false;
+                          return A.shortestPathLen > B.shortestPathLen;
+                      });
+
             for (int j = 0; j < T; ++j) {
                 listTaskList[i][j].dis = listTaskList[bestSeed][j].dis;
                 listTaskList[i][j].from = listTaskList[bestSeed][j].from;
@@ -777,9 +790,9 @@ int main() {
                 listTaskList[i][j].id = listTaskList[bestSeed][j].id;
             }
         }
-        
+
         if (N <= 1000) {
-            if ((i & 1)) {
+            if ((i % 4) == 1) {
                 init(GList[i], listTaskList[i], GList[bestSeed]);
             }
         } else if (1.0 * (M - N) / N <= 0.25) {
