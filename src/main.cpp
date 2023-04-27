@@ -2,7 +2,8 @@
 
 using i64 = std::int64_t;
 
-constexpr int INF = std::numeric_limits<int>::max() / 2.0;
+constexpr i64 INF = 1e18;
+constexpr int INT_INF = std::numeric_limits<int>::max() / 2.0;
 constexpr uint32_t SEED = 229;
 
 constexpr int EDGE_WEIGHT = 10;
@@ -39,6 +40,7 @@ struct Edge {
     int cntChannel;                // 记录当前剩余的信道数量
     bool deleted = false;
     bool preAdd = false;
+    bool added = false;
     Edge() = delete;
     Edge(int P) : markChannel(P, -1), cntChannel(P){};
     Edge(int from, int to, int distance, int P, int id)
@@ -62,8 +64,8 @@ struct Graph {
         adj[from].emplace_back(from, to, d, P, cnt);
         adj[to].emplace_back(to, from, d, P, cnt);
 
-        if (mat[from].find(to) == mat[from].end()) mat[from].insert({to, INF});
-        if (mat[to].find(from) == mat[to].end()) mat[to].insert({from, INF});
+        if (mat[from].find(to) == mat[from].end()) mat[from].insert({to, INT_INF});
+        if (mat[to].find(from) == mat[to].end()) mat[to].insert({from, INT_INF});
 
         mat[from][to] = mat[to][from] = std::min(mat[from][to], d);
 
@@ -87,7 +89,7 @@ struct Task {
     std::vector<int> station = {};
     std::vector<int> dis = {};
     int totalMinChannel = 0;
-    int totalSumDistance = 0;
+    i64 totalSumDistance = 0;
     int addEdge = 0;
 };
 
@@ -192,11 +194,11 @@ inline int cost(int x) {
 
 std::vector<std::pair<int, int>> singleChannelDijkstra(const Graph &G, int from,
                                                        int to, int p,
-                                                       int &toDis,
+                                                       i64 &toDis,
                                                        bool fixFlag = false) {
     std::vector<int> vis(N, 0);
     std::vector<std::pair<int, int>> last(N, {-1, -1});
-    std::vector<int> dis(N, INF);
+    std::vector<i64> dis(N, INF);
 
     dis[from] = 0;
     std::priority_queue<std::pair<int, int>> Q;
@@ -246,7 +248,7 @@ std::vector<std::pair<int, int>> singleChannelDijkstra(const Graph &G, int from,
 }
 
 void completeTask(Graph &G, Task &task,
-                  std::vector<std::pair<int, int>> &curLast, int toDis,
+                  std::vector<std::pair<int, int>> &curLast, i64 toDis,
                   int bestChannel) {
     int curNode = task.to;
     std::vector<int> resPathEdge, resPathNode, resDis;
@@ -311,9 +313,10 @@ void completeTask(Graph &G, Task &task,
 }
 
 void solveSingleTask(Graph &G, Task &task) {
-    int toDis = INF, bestChannel = -1;
+    i64 toDis = INF;
+    int bestChannel = -1;
     for (int p = 0; p < P; ++p) {
-        int nowToDis = INF;
+        i64 nowToDis = INF;
         auto curLast =
             singleChannelDijkstra(G, task.from, task.to, p, nowToDis);
         if (nowToDis < toDis) {
@@ -324,6 +327,14 @@ void solveSingleTask(Graph &G, Task &task) {
 
     auto curLast =
         singleChannelDijkstra(G, task.from, task.to, bestChannel, toDis);
+
+    // std::cerr << task.id << ": " << task.from << "->" << task.to << 
+    // ": " << toDis << std::endl;
+
+    // std::cerr << "#" << std::endl;
+    // for (auto edge : G.adj[3]) {
+        // std::cerr << edge.to << std::endl;
+    // }
 
     completeTask(G, task, curLast, toDis, bestChannel);
 }
@@ -366,10 +377,11 @@ void deleteEdgeToFix(Graph &G, std::vector<Task> &taskList,
     std::vector<int> channelUsed(P, 0);
     for (auto taskId : taskToFix) {
         auto task = taskList[taskId];
-        int toDis = INF, bestChannel = -1;
+        i64 toDis = INF; 
+        int bestChannel = -1;
         for (int p = 0; p < P; ++p) {
             if (channelUsed[p]) continue;
-            int nowToDis = INF;
+            i64 nowToDis = INF;
             auto curLast =
                 singleChannelDijkstra(G, task.from, task.to, p, nowToDis, true);
             // std::cerr << nowToDis << std::endl;
@@ -394,7 +406,7 @@ void deleteEdgeToFix(Graph &G, std::vector<Task> &taskList,
         for (int p = 0; p < P; ++p) {
             if (channelUsed[p]) {
                 auto &task = taskList[channelUsed[p]];
-                int toDis = INF;
+                i64 toDis = INF;
                 auto curLast = singleChannelDijkstra(G, task.from, task.to, p,
                                                      toDis, true);
 
@@ -541,7 +553,7 @@ void init(Graph &G, std::vector<Task> &taskList, Graph &lastG, int t = 0) {
     if (!t) {
         memset(cnt, 0, sizeof cnt);
         for (auto task : taskList) {
-            int toDis = INF;
+            i64 toDis = INF;
             auto curLast =
                 singleChannelDijkstra(G, task.from, task.to, 0, toDis, true);
             int curNode = task.to;
@@ -557,7 +569,7 @@ void init(Graph &G, std::vector<Task> &taskList, Graph &lastG, int t = 0) {
 
         for (int edgeId = 0; edgeId < M; ++edgeId) {
             if (cnt[edgeId] >= P) {
-                G.edgeSet[edgeId].first.deleted = true;
+                // G.edgeSet[edgeId].first.deleted = true;
                 int u = G.edgeSet[edgeId].first.from;
                 int v = G.edgeSet[edgeId].first.to;
                 if (u > v) std::swap(u, v);
@@ -570,6 +582,9 @@ void init(Graph &G, std::vector<Task> &taskList, Graph &lastG, int t = 0) {
 
                 G.adj[u][uId].preAdd = true;
                 G.adj[v][vId].preAdd = true;
+
+                G.edgeSet[edgeId].first.added = true;
+                // std::cerr << "added: " << edgeId << std::endl;
             }
         }
         return;
@@ -606,6 +621,7 @@ void init(Graph &G, std::vector<Task> &taskList, Graph &lastG, int t = 0) {
 
 // //=================== tarjan
 
+namespace Tarjan {
 constexpr int MAX_N = 5e3 + 7;
 constexpr int MAX_M = 5e3 + 7;
 int dfn[MAX_N], low[MAX_N], bridge[MAX_M], belong[MAX_N];
@@ -644,18 +660,21 @@ void tarjan(const Graph &G, int u, int fa) {
     }
 }
 
-std::vector<int> E[MAX_N];
-int siz[MAX_N], dep[MAX_N], son[MAX_N], top[MAX_N], fa[MAX_N];
+std::vector<std::pair<int, int>> E[MAX_N];
+// std::vector<int> E[MAX_N];
+int siz[MAX_N], dep[MAX_N], son[MAX_N], top[MAX_N], fa[MAX_N], edgeToFa[MAX_N]; // decomposition
 int fat[MAX_N];
 
 int get_fa(int x) { return x == fat[x] ? x : get_fa(fat[x]); }
 
 void dfs1(int u) {
     siz[u] = 1;
-    // for (int i = head[u]; i; i = e[i].next) {
-    for (auto v : E[u]) {
+    for (auto edge : E[u]) {
+        int v = edge.first;
+        // int v = edge;
         if (v == fa[u]) continue;
         fa[v] = u;
+        edgeToFa[v] = edge.second;
         dep[v] = dep[u] + 1;
         dfs1(v);
         siz[u] += siz[v];
@@ -666,7 +685,9 @@ void dfs1(int u) {
 void dfs2(int u, int tp) {
     top[u] = tp;
     if (son[u]) dfs2(son[u], tp);
-    for (auto v : E[u]) {
+    for (auto edge : E[u]) {
+        int v = edge.first;
+        // int v = edge;
         if (v == fa[u] || v == son[u]) continue;
         dfs2(v, v);
     }
@@ -694,8 +715,8 @@ std::vector<int> bccWeight(const Graph &G, std::vector<Task> &taskList) {
             int uu = belong[u], vv = belong[v];
             int fu = get_fa(uu), fv = get_fa(vv);
             if (fu == fv) continue;
-            E[uu].emplace_back(vv);
-            E[vv].emplace_back(uu);
+            E[uu].emplace_back(vv, edge.id);
+            E[vv].emplace_back(uu, edge.id);
             fat[uu] = vv;
         }
     }
@@ -713,6 +734,98 @@ std::vector<int> bccWeight(const Graph &G, std::vector<Task> &taskList) {
 
     return dis;
 }
+
+void buildGraph(Graph &G) {
+    for (int i = 0; i < N; ++i) fat[i] = i;
+    for (int i = 0; i < G.cnt; ++i) {
+        auto edge = G.edgeSet[i].first;
+        int u = edge.from, v = edge.to;
+        int U = belong[u], V = belong[v];
+        int fu = get_fa(U), fv = get_fa(V);
+        if (fu == fv) continue;
+        E[U].push_back(std::make_pair(V, i));
+        E[V].push_back(std::make_pair(U, i));
+    }
+}
+
+void TaskToBridge(Task &task, std::vector<int> &bridgeCnt) {
+    int u = task.from, v = task.to;
+    int U = belong[u], V = belong[v];
+    int LCA = lca(U, V);
+    // std::cerr << u << ", " << v << ": " << U << ", " << V << ", lca: " << LCA << std::endl;
+    int curNode = U;
+    while (curNode && curNode != LCA) {
+        if (fa[curNode]) {
+            // std::cerr << edgeToFa[curNode] << std::endl;
+            ++bridgeCnt[edgeToFa[curNode]];
+        }
+        curNode = fa[curNode];
+    }
+    curNode = V;
+    while (curNode && curNode != LCA) {
+        if (fa[curNode]) {
+            ++bridgeCnt[edgeToFa[curNode]];
+        }
+        curNode = fa[curNode];
+    }
+}
+
+std::vector<int> preAddEdgesInit(Graph &G, std::vector<Task> &taskList) {
+    for (int u = 0; u < N; ++u) {
+        if (!dfn[u]) {
+            tarjan(G, u, -1);
+        }
+    }
+    // std::cerr << num << std::endl;
+    buildGraph(G);
+    // for (int u = 1; u <= num; ++u) {
+    //     std::cerr << u << ": " << std::endl;
+    //     for (auto edge : E[u]) {
+    //         std::cerr << edge.first << " ";
+    //     }
+    //     std::cerr << std::endl;
+    // }
+    std::vector<int> bridgeCnt(G.cnt, 0);
+    dfs1(1);
+    dfs2(1, 1);
+    for (auto &task : taskList) {
+        TaskToBridge(task, bridgeCnt);
+    }
+    // for (auto a : bridgeCnt) std::cerr << a << " ";
+    // std::cerr << std::endl;
+    
+    // std::cerr << "total added: " << G.cnt - M << std::endl;
+
+    return bridgeCnt;
+}   
+void preAddEdges(Graph &G, std::vector<int> bridgeCnt) {
+    for (int edgeId = 0; edgeId < M; ++edgeId) {
+        int timeToAdd = (std::max(bridgeCnt[edgeId] - P, 0) + P - 1) / P;
+        if (timeToAdd > 0) {
+            // std::cerr << "find: " << edgeId << ", " << timeToAdd << ": " << bridgeCnt[edgeId] << std::endl;
+        }
+        for (int i = 0; i < std::max((timeToAdd - (G.edgeSet[edgeId].first.added == true) + 1) / 2, 0); ++i) {
+            // std::cerr << "tarjan: " << edgeId << std::endl;
+            // G.edgeSet[edgeId].first.deleted = true;
+            int u = G.edgeSet[edgeId].first.from;
+            int v = G.edgeSet[edgeId].first.to;
+            if (u > v) std::swap(u, v);
+
+            G.addEdge(u, v, G.mat[u][v]);
+            int nowEdgeId = G.cnt - 1;
+            G.edgeSet[nowEdgeId].first.preAdd = true;
+            int uId = G.edgeSet[nowEdgeId].second.first;
+            int vId = G.edgeSet[nowEdgeId].second.second;
+
+            G.adj[u][uId].preAdd = true;
+            G.adj[v][vId].preAdd = true;
+
+            G.edgeSet[edgeId].first.added = true;
+        }
+    }
+}
+} // namespace Tarjan
+
 
 //===================
 
@@ -738,6 +851,8 @@ int main() {
         taskList.push_back({i, _from, _to, _dis});
     }
 
+    auto bridgeCnt = Tarjan::preAddEdgesInit(G, taskList);
+    // std::cerr << G.cnt - M << std::endl;
     int timeIWantToTry = 30;
     if (N <= 500)
         timeIWantToTry = 100;
@@ -758,8 +873,10 @@ int main() {
 
     // std::vector<int> bccDis = bccWeight(G, taskList);
 
-    int bestSeed = 0, bestScore = INF;
+    int bestSeed = 0; 
+    i64 bestScore = -1;
 
+    // timeIWantToTry = 1;
     for (int i = 0; i < timeIWantToTry; i++) {
         std::srand(seedList[i]);
         std::random_shuffle(begin(listTaskList[i]), end(listTaskList[i]));
@@ -791,6 +908,10 @@ int main() {
             }
         }
 
+        // for (auto task : listTaskList[i]) {
+        //     std::cerr << task.from << "->" << task.to << std::endl;
+        // }
+
         if (N <= 1000) {
             if ((i % 5) == 1) {
                 init(GList[i], listTaskList[i], GList[bestSeed]);
@@ -798,12 +919,13 @@ int main() {
         } else if (1.0 * (M - N) / N <= 0.25) {
             init(GList[i], listTaskList[i], GList[bestSeed]);
         }
+        Tarjan::preAddEdges(GList[i], bridgeCnt);
         // init(GList[i], listTaskList[i], GList[bestSeed], 0);
         solveAllTask(GList[i], listTaskList[i]);
 
         auto curScore = solveScoreTask(GList[i], listTaskList[i]);
         // std::cerr << i << " " << curScore << std::endl;
-        if (curScore < bestScore) {
+        if (curScore < bestScore || bestScore == -1) {
             bestScore = curScore;
             bestSeed = i;
         }
