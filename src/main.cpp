@@ -619,7 +619,7 @@ void init(Graph &G, std::vector<Task> &taskList, Graph &lastG, int t = 0) {
     }
 }
 
-// //=================== tarjan
+//=================== tarjan
 
 namespace Tarjan {
 constexpr int MAX_N = 5e3 + 7;
@@ -827,6 +827,82 @@ void preAddEdges(Graph &G, std::vector<int> bridgeCnt) {
 } // namespace Tarjan
 
 
+//=================== sort by weight
+
+namespace WeightSort {
+
+std::vector<std::pair<int, int>> dijkstra(const Graph &G, const std::vector<int> &edgeWeight, int from, int to, i64 &toDis) {
+    std::vector<int> vis(N, 0);
+    std::vector<std::pair<int, int>> last(N, {-1, -1});
+    std::vector<i64> dis(N, INF);
+
+    dis[from] = 0;
+    std::priority_queue<std::pair<int, int>> Q;
+    Q.push(std::make_pair(-dis[from], from));
+
+    while (!Q.empty()) {
+        auto [negDis, u] = Q.top();
+        Q.pop();
+        dis[u] = -negDis;
+
+        if (vis[u]) continue;
+        vis[u] = true;
+
+        if (u == to) break;
+
+        for (const auto &edge : G.adj[u]) {
+            int v = edge.to;
+            if (vis[v]) continue;
+            int nxtDis = dis[u] + edgeWeight[edge.id];
+            if (nxtDis < dis[v]) {
+                dis[v] = nxtDis;
+                last[v] = {u, edge.id};
+                Q.push(std::make_pair(-dis[v], v));
+            }
+        }
+    }
+
+    toDis = dis[to];
+    if (vis[to] == 0) return {};
+    return last;
+}
+
+void sortByWeight(const Graph &G, std::vector<Task> &taskList) {
+
+    std::vector<int> edgeWeight(G.cnt, 1);
+    std::vector<int> edgeCnt(G.cnt, 0);
+
+    for (auto &task : taskList) {
+        i64 toDis;
+        auto curLast = dijkstra(G, edgeWeight, task.from, task.to, toDis);
+        if (!curLast.size()) {
+            continue;
+        }
+        int curNode = task.to;
+
+        task.addEdge = 0;
+        while (curNode != -1) {
+            auto [prevNode, prevEdge] = curLast[curNode];
+            if (prevEdge == -1) break;
+            ++edgeCnt[prevNode];
+            curNode = prevNode;
+        }
+    }
+
+    for (int i = 0; i < G.cnt; ++i) {
+        edgeWeight[i] = edgeCnt[i];
+    }
+
+    for (auto &task : taskList) {
+        i64 toDis = 0;
+        auto curLast = dijkstra(G, edgeWeight, task.from, task.to, toDis);
+        task.shortestPathLen = toDis;
+    }
+
+}
+
+}
+
 //===================
 
 int main() {
@@ -852,6 +928,12 @@ int main() {
     }
 
     auto bridgeCnt = Tarjan::preAddEdgesInit(G, taskList);
+    WeightSort::sortByWeight(G, taskList);
+
+    // for (auto task : taskList) {
+    //     std::cerr << task.shortestPathLen << std::endl;
+    // }
+
     // std::cerr << G.cnt - M << std::endl;
     int timeIWantToTry = 30;
     if (N <= 500)
