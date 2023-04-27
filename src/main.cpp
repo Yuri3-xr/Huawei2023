@@ -4,11 +4,11 @@ using i64 = std::int64_t;
 
 constexpr i64 INF = 1e18;
 constexpr int INT_INF = std::numeric_limits<int>::max() / 2.0;
-constexpr uint32_t SEED = 229;
+constexpr uint32_t SEED = 352215;
 
 constexpr int EDGE_WEIGHT = 10;
 constexpr int ADDED_EDGE_WEIGHT = 1e6;
-constexpr int PRE_ADDED_EDGE_WEIGHT = 10;
+constexpr int PRE_ADDED_EDGE_WEIGHT = 9;
 
 std::mt19937 seed(SEED);
 struct Timer {
@@ -226,7 +226,7 @@ std::vector<std::pair<int, int>> singleChannelDijkstra(const Graph &G, int from,
             if (edge.markChannel[p] == -1) {
                 nxtDis += cost(P - edge.cntChannel);
                 if (edge.preAdd) {
-                    nxtDis += EDGE_WEIGHT;
+                    nxtDis += PRE_ADDED_EDGE_WEIGHT;
                 } else {
                     nxtDis += EDGE_WEIGHT;
                 }
@@ -916,9 +916,10 @@ int main() {
             if ((i % 5) == 1) {
                 init(GList[i], listTaskList[i], GList[bestSeed]);
             }
-        } else if (1.0 * (M - N) / N <= 0.25) {
-            init(GList[i], listTaskList[i], GList[bestSeed]);
         }
+        //  else if (1.0 * (M - N) / N <= 0.25) {
+            // init(GList[i], listTaskList[i], GList[bestSeed]);
+        // }
         Tarjan::preAddEdges(GList[i], bridgeCnt);
         // init(GList[i], listTaskList[i], GList[bestSeed], 0);
         solveAllTask(GList[i], listTaskList[i]);
