@@ -185,11 +185,11 @@ std::pair<std::vector<int>, std::vector<int>> newBfs(const Graph &G, int from,
 //==================================================== dijkstra
 
 inline int cost(int x) {
-    if (M > N * 30) {
-        return exp(1.0 * x / 20);
-    } else {
+    // if (M > N * 30) {
+        // return exp(1.0 * x / 20);
+    // } else {
         return x;
-    }
+    // }
 }
 
 std::vector<std::pair<int, int>> singleChannelDijkstra(const Graph &G, int from,
