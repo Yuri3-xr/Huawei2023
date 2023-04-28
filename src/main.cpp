@@ -604,7 +604,7 @@ void init(Graph &G, std::vector<Task> &taskList, Graph &lastG, int t = 0) {
               [&](auto A, auto B) { return A.cntChannel < B.cntChannel; });
 
     // std::cerr << edgeList.size() << std::endl;
-    double rate = 0.6;
+    double rate = 0.72;
     for (int i = 0; i < (int)((edgeList.size()) * rate); ++i) {
         int u = edgeList[i].from;
         int v = edgeList[i].to;
@@ -885,6 +885,7 @@ int main() {
     int bestSeed = 0;
     i64 bestScore = -1;
 
+    int lastTryTime = 0;
     // timeIWantToTry = 1;
     for (int i = 0; i < timeIWantToTry; i++) {
         std::srand(seedList[i]);
@@ -916,7 +917,15 @@ int main() {
                 listTaskList[i][j].id = listTaskList[i - 1][j].id;
             }
         }
-
+        if (1LL * M * P * T >= 1E9) {
+            std::sort(begin(listTaskList[i]), end(listTaskList[i]),
+                      [&](auto cmpA, auto cmpB) {
+                          // if (bccDis[cmpA.id] > bccDis[cmpB.id]) return true;
+                          // if (bccDis[cmpA.id] < bccDis[cmpB.id]) return
+                          // false;
+                          return cmpA.shortestPathLen < cmpB.shortestPathLen;
+                      });
+        }
         // for (auto task : listTaskList[i]) {
         //     std::cerr << task.from << "->" << task.to << std::endl;
         // }
@@ -941,7 +950,10 @@ int main() {
         }
         unsigned int singleRunTime = (timer.elapsed() + i) / (i + 1);
 
-        if (timer.elapsed() + singleRunTime >= 1000 * 110) break;
+        if (timer.elapsed() + singleRunTime >= 1000 * 110) {
+            lastTryTime = i;
+            break;
+        }
     }
 
     // std::cerr << bestSeed << std::endl;
