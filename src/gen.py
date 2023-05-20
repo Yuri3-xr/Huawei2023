@@ -1,22 +1,20 @@
 import sys
 import random
+import math
 
-SETN = 500
+SETN = 5000
 SETM = 5000
-SETT = 1000
-SETP = 10
+SETT = 10000
+SETR = 35000
+SETP = 80
 SETD = 1000
 
-N = random.randint(5, SETN)
-M = random.randint(N - 1, N * 30)
-T = random.randint(500, SETT)
-P = random.randint(2, SETP)
+N = 10
+M = 20
+T = 100
+R = 0
+P = 20
 D = random.randint(2, SETD)
-
-N = 2500
-M = 5000
-P = 80
-T = 10000
 
 fa = [i for i in range(N)]
 edge_list = []
@@ -74,10 +72,21 @@ gen_span_tree()
 random_add_edge()
 random_task()
 
-print(str(N) + ' ' + str(M) + ' ' + str(T) + ' ' + str(P) + ' ' + str(D))
+r_list = []
+
+for i in range(T):
+    r_list.append(random.randint(1, 10))
+    R += r_list[i]
+    i += 1
+
+print(str(N) + ' ' + str(M) + ' ' + str(T) + ' ' + str(R) + ' ' + str(P) + ' ' + str(D))
 
 for edge in edge_list:
     print(str(edge[0]) + ' ' + str(edge[1]) + ' ' + str(edge[2]))
 
+cnt = 0
 for task in task_list:
-    print(str(task[0]) + ' ' + str(task[1]))
+    print(str(task[0]) + ' ' + str(task[1]) + ' ' + str(r_list[cnt]))
+    cnt += 1
+
+
