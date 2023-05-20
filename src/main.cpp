@@ -387,7 +387,7 @@ void solveSingleTask(Graph &G, Task &task, std::vector<int> &channelList,
             pList.push_back(i);
         }
         std::random_shuffle(begin(pList), end(pList));
-        pList.resize(std::min(5, P));
+        pList.resize(std::min(6, P));
         for (auto p : pList) {
             i64 nowToDis = INF;
             auto curLast = singleChannelDijkstra(
@@ -827,18 +827,18 @@ std::vector<int> bccWeight(const Graph &G, std::vector<Task> &taskList) {
     return dis;
 }
 
-// void buildGraph(Graph &G) {
-//     for (int i = 0; i < N; ++i) fat[i] = i;
-//     for (int i = 0; i < G.cnt; ++i) {
-//         auto edge = G.edgeSet[i].first;
-//         int u = edge.from, v = edge.to;
-//         int U = belong[u], V = belong[v];
-//         int fu = get_fa(U), fv = get_fa(V);
-//         if (fu == fv) continue;
-//         E[U].push_back(std::make_pair(V, i));
-//         E[V].push_back(std::make_pair(U, i));
-//     }
-// }
+void buildGraph(Graph &G) {
+    for (int i = 0; i < N; ++i) fat[i] = i;
+    for (int i = 0; i < G.cnt; ++i) {
+        auto edge = G.edgeSet[i].first;
+        int u = edge.from, v = edge.to;
+        int U = belong[u], V = belong[v];
+        int fu = get_fa(U), fv = get_fa(V);
+        if (fu == fv) continue;
+        E[U].push_back(std::make_pair(V, i));
+        E[V].push_back(std::make_pair(U, i));
+    }
+}
 
 void TaskToBridge(Task &task, std::vector<int> &bridgeCnt) {
     int u = task.from, v = task.to;
@@ -870,7 +870,7 @@ std::vector<int> preAddEdgesInit(Graph &G, std::vector<Task> &taskList) {
         }
     }
     // std::cerr << num << std::endl;
-    // buildGraph(G);
+    buildGraph(G);
     // for (int u = 1; u <= num; ++u) {
     //     std::cerr << u << ": " << std::endl;
     //     for (auto edge : E[u]) {
@@ -1096,6 +1096,7 @@ int main() {
                 listTaskList[i][j].from = listTaskList[i - 1][j].from;
                 listTaskList[i][j].to = listTaskList[i - 1][j].to;
                 listTaskList[i][j].id = listTaskList[i - 1][j].id;
+                listTaskList[i][j].r = listTaskList[i - 1][j].r;
             }
         }
 
