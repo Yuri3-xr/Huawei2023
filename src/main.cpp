@@ -252,7 +252,7 @@ std::vector<std::pair<int, int>> singleChannelDijkstra(
 
     dis[from] = 0;
     // RadixHeap::RadixHeap<int, int> Q;
-    std::priority_queue<std::pair<int, int>> Q;
+    std::priority_queue<std::pair<i64, int>> Q;
     Q.push({-dis[from], from});
 
     while (!Q.empty()) {
@@ -1033,9 +1033,7 @@ int main() {
     }
 
     // auto bridgeCnt = Tarjan::preAddEdgesInit(G, taskList);
-    if (M * T * P >= 1E9) {
-        WeightSort::sortByWeight(G, taskList);
-    }
+    WeightSort::sortByWeight(G, taskList);
 
     // for (auto task : taskList) {
     //     std::cerr << task.shortestPathLen << std::endl;
@@ -1080,7 +1078,11 @@ int main() {
                   [&](auto cmpA, auto cmpB) {
                       // if (bccDis[cmpA.id] > bccDis[cmpB.id]) return true;
                       // if (bccDis[cmpA.id] < bccDis[cmpB.id]) return false;
-                      return cmpA.shortestPathLen > cmpB.shortestPathLen;
+                      int weightA = 0, weightB = 0;
+                      if (cmpA.r == 2) weightA += 10;
+                      if (cmpB.r == 2) weightB += 10;
+                      return cmpA.shortestPathLen + weightA >
+                             cmpB.shortestPathLen + weightB;
                   });
 
         if (i) {
@@ -1116,7 +1118,13 @@ int main() {
                           // if (bccDis[cmpA.id] > bccDis[cmpB.id]) return true;
                           // if (bccDis[cmpA.id] < bccDis[cmpB.id]) return
                           // false;
-                          return cmpA.shortestPathLen > cmpB.shortestPathLen;
+                          //   return cmpA.shortestPathLen >
+                          //   cmpB.shortestPathLen;
+                          int weightA = 0, weightB = 0;
+                          if (cmpA.r == 2) weightA += 10;
+                          if (cmpB.r == 2) weightB += 10;
+                          return cmpA.shortestPathLen + weightA >
+                                 cmpB.shortestPathLen + weightB;
                       });
         }
 
