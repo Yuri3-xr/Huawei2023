@@ -10,7 +10,7 @@ output_file = "./output.txt"
 
 os.system('./' + exe + ' < ' + input_file + ' > ' + output_file)
 
-edge_list = []
+edge_weight = []
 mat = []
 edge_index = {}
 channel_list = []
@@ -25,7 +25,7 @@ Y = 0
 ans = 0
 
 def add_edge(u, v, id, w):
-    edge_list[u][v] = {'id': id, 'w': w}
+    edge_weight[id] = w
     edge_index[id] = (u, v)
     mat[u][v] = min(mat[u][v], w)
 
@@ -46,12 +46,15 @@ def check(id, channel, path_list, station_list):
             u = v
             v = t
         if channel_list[edge_id][channel] != 0:
+            print('fatal: channel')
             return -1
         channel_list[edge_id][channel] = 1
         if u != lst:
+            print('fatal: path')
             return -1
-        now_dis += edge_list[u][v]['w']
+        now_dis += edge_weight[edge_id]
         if now_dis > D:
+            print('fatal: station')
             return -1
         if vis[v] == True:
             now_dis = 0
@@ -59,6 +62,7 @@ def check(id, channel, path_list, station_list):
         lst = v
 
     if lst != to:
+        print('fatal: end')
         return -1
     
     return 0
@@ -79,7 +83,7 @@ try:
     P = int(par_list[3])
     D = int(par_list[4])
 
-    edge_list = [{} for i in range(N)]
+    edge_weight = [INF for i in range(M)]
 
     for i in range(M):
         channel_list.append([])
@@ -115,6 +119,7 @@ try:
     ans += Y * 1e6
 
     for i in range(Y):
+        edge_weight.append(INF)
         channel_list.append([])
         channel_list[i + M] = [0 for i in range(P)]
     
@@ -136,7 +141,7 @@ try:
         ans += path_len * 1
         res = check(i - Y - 1, channel, path_list, station_list)
         if res == -1:
-            print(i - Y - 1)
+            print('task {}: failed.'.format(i - Y - 1))
             print('CHECK: ILLEGAL!')
             exit()
 
